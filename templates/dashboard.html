@@ -48,14 +48,14 @@
                 opacity: 1;
             }
 
-            /* --- Activity Ring Styles (CRITICAL FOR VISIBILITY) --- */
+            /* --- Activity Ring Styles (CRITICAL) --- */
             .ring-container {
                 position: relative;
                 display: inline-block;
             }
             .ring-bg {
                 fill: none;
-                stroke: #e5e7eb; /* Light Gray track */
+                stroke: #e5e7eb; /* Fixed Light Gray for empty tracks */
             }
             .ring-progress {
                 fill: none;
@@ -188,7 +188,7 @@
                 </div>
             </div>
 
-            <!-- DATA INJECTION FOR TIMELINE (Safe Mode) -->
+            <!-- DATA INJECTION -->
             <script id="full-dataset" type="application/json">
                 {{ data.results | tojson }}
             </script>
@@ -298,7 +298,7 @@
                                     name="journal_filter"
                                     value="{{ name }}"
                                     checked
-                                    class="mr-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                    class="mr-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer journal-checkbox"
                                 />
                                 <label
                                     for="j-{{ name }}"
@@ -703,6 +703,7 @@
                         journalControls
                             .querySelectorAll('input[type="checkbox"]')
                             .forEach((cb) => (cb.checked = checked));
+                        // IMPORTANT: Call updateTable directly so it works without tab switching
                         updateTable();
                         const timelineContainer =
                             document.getElementById("timeline-container");
@@ -759,6 +760,7 @@
                             PROFILE_COLORS[ring.profile.split("-")[0]] ||
                             PROFILE_COLORS["default"];
 
+                        // Bg
                         const bgCircle = document.createElementNS(
                             "http://www.w3.org/2000/svg",
                             "circle",
@@ -768,10 +770,12 @@
                         bgCircle.setAttribute("r", radius);
                         bgCircle.setAttribute("stroke-width", strokeWidth);
                         bgCircle.setAttribute("class", "ring-bg");
+                        // Inline styles for robustness
                         bgCircle.style.fill = "none";
                         bgCircle.style.stroke = "#e5e7eb";
                         svg.appendChild(bgCircle);
 
+                        // Progress
                         const progressCircle = document.createElementNS(
                             "http://www.w3.org/2000/svg",
                             "circle",
@@ -793,6 +797,7 @@
                             offset,
                         );
                         progressCircle.setAttribute("class", "ring-progress");
+                        // Inline styles
                         progressCircle.style.fill = "none";
                         progressCircle.style.stroke = color;
                         progressCircle.style.transition =
@@ -813,14 +818,11 @@
                         tableRows.forEach((row) => {
                             const journalName = row.dataset.journalName;
 
-                            if (
-                                selectedJournals.size > 0 &&
-                                !selectedJournals.has(journalName)
-                            ) {
+                            if (selectedJournals.has(journalName)) {
+                                row.style.display = "";
+                            } else {
                                 row.style.display = "none";
                                 return;
-                            } else {
-                                row.style.display = "";
                             }
 
                             const totalImages =
@@ -1188,9 +1190,9 @@
                     });
                 }
 
-                // Init
+                // --- INITIALIZE ---
                 loadFilters();
-                updateTable();
+                updateTable(); // <--- IMPORTANT: Called immediately
 
                 if (controls)
                     controls.addEventListener("change", () => {
@@ -1207,8 +1209,12 @@
                             renderTimeline();
                     });
 
-                if (journalControls)
-                    journalControls.addEventListener("change", () => {
+                // Add direct event listeners to journal checkboxes
+                const journalCheckboxes = journalControls.querySelectorAll(
+                    'input[type="checkbox"]',
+                );
+                journalCheckboxes.forEach((checkbox) => {
+                    checkbox.addEventListener("change", () => {
                         updateTable();
                         const timelineContainer =
                             document.getElementById("timeline-container");
@@ -1217,10 +1223,12 @@
                             !document
                                 .getElementById("view-timeline")
                                 .classList.contains("hidden")
-                        )
+                        ) {
                             renderTimeline();
+                        }
                         updateSelectionStats();
                     });
+                });
             });
         </script>
     </body>
