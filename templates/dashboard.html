@@ -7,7 +7,7 @@
         <script src="https://cdn.tailwindcss.com"></script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <style>
-            /* Tooltip Styles */
+            /* --- Tooltip Styles --- */
             .tooltip {
                 position: relative;
                 display: inline-block;
@@ -48,14 +48,14 @@
                 opacity: 1;
             }
 
-            /* Activity Ring Styles */
+            /* --- Activity Ring Styles (CRITICAL FOR VISIBILITY) --- */
             .ring-container {
                 position: relative;
                 display: inline-block;
             }
             .ring-bg {
                 fill: none;
-                stroke: #e5e7eb;
+                stroke: #e5e7eb; /* Light Gray track */
             }
             .ring-progress {
                 fill: none;
@@ -65,10 +65,10 @@
                 transition: stroke-dashoffset 0.5s ease-in-out;
             }
             .ring-container:hover .ring-bg {
-                stroke: #d1d5db;
+                stroke: #d1d5db; /* Darker gray on hover */
             }
 
-            /* Hover Legend Styles */
+            /* --- Hover Legend Styles --- */
             .ring-legend {
                 display: none;
                 position: absolute;
@@ -122,7 +122,7 @@
                 font-weight: 500;
             }
 
-            /* Timeline Specific Styles */
+            /* --- Timeline Styles --- */
             .timeline-cell {
                 transition: transform 0.1s;
             }
@@ -132,8 +132,6 @@
                 box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
                 border-color: #3b82f6;
             }
-
-            /* Selection Highlight Styles */
             .header-cell-selected {
                 background-color: #bfdbfe !important;
                 border-bottom: 2px solid #2563eb !important;
@@ -190,7 +188,7 @@
                 </div>
             </div>
 
-            <!-- Pass Full Dataset to JS -->
+            <!-- DATA INJECTION FOR TIMELINE (Safe Mode) -->
             <script id="full-dataset" type="application/json">
                 {{ data.results | tojson }}
             </script>
@@ -223,12 +221,14 @@
 
             <div class="bg-white p-6 rounded-lg shadow-md min-h-[500px]">
                 <!-- FILTERS GRID -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <!-- 1. DATA PROFILES FILTER -->
+                <div
+                    class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 items-start"
+                >
+                    <!-- 1. Data Profiles -->
                     <div class="p-4 border rounded-lg bg-gray-50">
                         <label
                             class="font-bold text-gray-700 block mb-2 border-b pb-2"
-                            >Data Profiles (Timeline Colors)</label
+                            >Data Profiles</label
                         >
                         <div
                             id="filter-controls"
@@ -246,7 +246,7 @@
                                 />
                                 <label
                                     for="{{ profile }}"
-                                    class="text-gray-600 cursor-pointer flex items-center"
+                                    class="text-gray-600 cursor-pointer flex items-center text-sm"
                                 >
                                     <span
                                         class="color-dot w-3 h-3 rounded-full mr-1 inline-block bg-gray-400"
@@ -259,9 +259,9 @@
                         </div>
                     </div>
 
-                    <!-- 2. JOURNAL FILTER -->
+                    <!-- 2. Journal Filter (COMPRESSED) -->
                     <div
-                        class="p-4 border rounded-lg bg-gray-50 flex flex-col h-[500px]"
+                        class="p-4 border rounded-lg bg-gray-50 flex flex-col max-h-[500px]"
                     >
                         <div
                             class="flex justify-between items-center mb-2 border-b pb-2"
@@ -271,14 +271,14 @@
                             >
                             <div class="text-xs space-x-2">
                                 <button
-                                    onclick="toggleAllJournals(true)"
+                                    onclick="window.toggleAllJournals(true)"
                                     class="text-blue-600 hover:underline"
                                 >
                                     Select All
                                 </button>
                                 <span class="text-gray-300">|</span>
                                 <button
-                                    onclick="toggleAllJournals(false)"
+                                    onclick="window.toggleAllJournals(false)"
                                     class="text-blue-600 hover:underline"
                                 >
                                     Deselect All
@@ -287,7 +287,7 @@
                         </div>
                         <div
                             id="journal-controls"
-                            class="overflow-y-auto flex-1 grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 pr-2"
+                            class="overflow-y-auto flex-1 grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-0.5 content-start pr-2"
                         >
                             {% for name, _ in
                             data.results|dictsort(case_sensitive=false) %}
@@ -335,12 +335,12 @@
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                                     >
-                                        Complete data/metadata
+                                        Complete data
                                     </th>
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                                     >
-                                        Incomplete/Missing Data
+                                        Incomplete/Missing
                                     </th>
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -401,7 +401,7 @@
                                         }}
                                     </td>
 
-                                    <!-- Complete Data Column -->
+                                    <!-- Complete Data -->
                                     <td
                                         class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top"
                                     >
@@ -419,19 +419,6 @@
                                                     class="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"
                                                     >✅ Texts</span
                                                 >
-                                                <div
-                                                    class="pl-4 mt-1 text-xs text-gray-600"
-                                                >
-                                                    {% for edition, count in
-                                                    texts_group.edition_counts|dictsort
-                                                    %}
-                                                    <p>
-                                                        &bull; {{ edition }}: {{
-                                                        "{:,}".format(count) }}
-                                                        present
-                                                    </p>
-                                                    {% endfor %}
-                                                </div>
                                             </div>
                                             {% endif %} {% for profile, count in
                                             journal.summary.profile_counts|dictsort
@@ -440,15 +427,13 @@
                                             journal.summary.total_images > 0 %}
                                             <span
                                                 class="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"
-                                                >✅ {{ profile }}: {{
-                                                "{:,}".format(journal.summary.total_images)
-                                                }}</span
+                                                >✅ {{ profile }}</span
                                             >
                                             {% endif %} {% endfor %}
                                         </div>
                                     </td>
 
-                                    <!-- Incomplete/Missing Data Column -->
+                                    <!-- Incomplete Data -->
                                     <td
                                         class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top"
                                     >
@@ -464,21 +449,8 @@
                                                     class="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800"
                                                     >🟡 Texts: {{
                                                     "{:,}".format(texts_group.missing_coverage)
-                                                    }} missing coverage</span
+                                                    }} missing</span
                                                 >
-                                                <div
-                                                    class="pl-4 mt-1 text-xs text-gray-600"
-                                                >
-                                                    {% for edition, count in
-                                                    texts_group.edition_counts|dictsort
-                                                    %}
-                                                    <p>
-                                                        &bull; {{ edition }}: {{
-                                                        "{:,}".format(count) }}
-                                                        present
-                                                    </p>
-                                                    {% endfor %}
-                                                </div>
                                             </div>
                                             {% endif %} {% for profile, count in
                                             journal.summary.profile_counts|dictsort
@@ -487,10 +459,8 @@
                                             <span
                                                 class="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800"
                                                 >🟡 {{ profile }}: {{
-                                                "{:,}".format(count) }} missing
-                                                / {{
-                                                "{:,}".format(journal.summary.total_images
-                                                - count) }} present</span
+                                                "{:,}".format(count) }}
+                                                missing</span
                                             >
                                             {% endfor %}
                                         </div>
@@ -524,9 +494,6 @@
                             </tbody>
                         </table>
                     </div>
-                    <p class="text-xs text-gray-400 mt-4">
-                        * Values are calculated based on the selected profiles.
-                    </p>
                 </div>
 
                 <!-- VIEW 2: TIMELINE -->
@@ -537,8 +504,7 @@
                         </h3>
                         <p class="text-sm text-gray-500 mb-4">
                             Drag across the years in the header row to calculate
-                            total page counts for a specific period. Use the
-                            filters above to isolate specific journals.
+                            totals.
                         </p>
                         <div
                             class="flex flex-wrap items-center gap-4 text-xs text-gray-600 mb-4"
@@ -551,15 +517,14 @@
                             </div>
                             <div class="flex items-center">
                                 <span class="w-3 h-3 bg-gray-600 mr-1"></span>
-                                0% Data (Stripe)
+                                0% Data
                             </div>
                             <div class="flex items-center">
                                 <span class="w-3 h-3 bg-gray-400 mr-1"></span>
-                                Profile Color (Stripe)
+                                Profile Color
                             </div>
                         </div>
 
-                        <!-- SELECTION STATS BAR -->
                         <div
                             id="selection-stats"
                             class="hidden p-4 bg-blue-50 border border-blue-200 rounded-lg flex justify-between items-center shadow-sm"
@@ -569,19 +534,17 @@
                                     class="text-blue-800 font-bold text-lg mr-2"
                                     >Selected Range:</span
                                 >
-                                <!-- UPDATED: Replaced Span with Input for Keyboard Editing -->
                                 <input
                                     type="text"
                                     id="selection-range-input"
                                     class="bg-transparent border-b-2 border-blue-300 text-blue-900 font-mono text-lg focus:outline-none focus:border-blue-600 w-40 text-center"
-                                    title="Type year range (e.g. 1890-1900) and press Enter"
                                     placeholder="YYYY - YYYY"
                                 />
                             </div>
                             <div class="text-right">
                                 <span
                                     class="text-gray-600 text-sm uppercase tracking-wide"
-                                    >Total Pages (Filtered Journals)</span
+                                    >Total Pages (Filtered)</span
                                 ><br />
                                 <span
                                     id="selection-total-count"
@@ -597,7 +560,6 @@
                             </button>
                         </div>
                     </div>
-
                     <div
                         id="timeline-container"
                         class="overflow-x-auto border rounded-lg p-4 bg-gray-50 select-none"
@@ -607,7 +569,7 @@
         </div>
 
         <script>
-            // --- TAB LOGIC ---
+            // --- GLOBAL FUNCTIONS ---
             function switchTab(tabName) {
                 const tableBtn = document.getElementById("tab-btn-table");
                 const timelineBtn = document.getElementById("tab-btn-timeline");
@@ -629,7 +591,6 @@
                 if (tabName === "table") {
                     tableView.classList.remove("hidden");
                     timelineView.classList.add("hidden");
-
                     tableBtn.classList.add(...activeClasses);
                     tableBtn.classList.remove(...inactiveClasses);
                     timelineBtn.classList.remove(...activeClasses);
@@ -637,15 +598,18 @@
                 } else {
                     tableView.classList.add("hidden");
                     timelineView.classList.remove("hidden");
-
                     timelineBtn.classList.add(...activeClasses);
                     timelineBtn.classList.remove(...inactiveClasses);
                     tableBtn.classList.remove(...activeClasses);
                     tableBtn.classList.add(...inactiveClasses);
-
-                    renderTimeline();
+                    const evt = new Event("triggerTimelineRender");
+                    document.dispatchEvent(evt);
                 }
             }
+
+            // Placeholders
+            window.toggleAllJournals = function () {};
+            window.clearTimelineSelection = function () {};
 
             document.addEventListener("DOMContentLoaded", function () {
                 const controls = document.getElementById("filter-controls");
@@ -655,54 +619,29 @@
                 const rangeInput = document.getElementById(
                     "selection-range-input",
                 );
+                const storageKey = "dashboardProfileFilters";
 
-                // Read the Full Dataset from the script tag
+                // Dataset
                 let DATASET_RESULTS = {};
                 try {
-                    DATASET_RESULTS = JSON.parse(
-                        document.getElementById("full-dataset").textContent,
-                    );
+                    const scriptTag = document.getElementById("full-dataset");
+                    if (scriptTag)
+                        DATASET_RESULTS = JSON.parse(scriptTag.textContent);
                 } catch (e) {
-                    console.error("Could not parse dataset json", e);
+                    console.error("JSON Parse Error", e);
                 }
 
-                // --- GLOBAL YEAR BOUNDARIES (Moved out of renderTimeline) ---
-                let minYear = 3000;
-                let maxYear = 1000;
-
-                // Calculate once on load
-                const allJournalNames = Object.keys(DATASET_RESULTS);
-                allJournalNames.forEach((name) => {
-                    const yearsData = DATASET_RESULTS[name].years;
-                    Object.keys(yearsData).forEach((yStr) => {
-                        const y = parseInt(yStr.split("-")[0]);
-                        if (y < minYear) minYear = y;
-                        if (y > maxYear) maxYear = y;
-                    });
-                });
-                // Fallback if empty
-                if (minYear > maxYear) {
-                    minYear = 1900;
-                    maxYear = 2000;
-                }
-
-                // Selection State
-                let selectionStart = null;
-                let selectionEnd = null;
-                let isSelecting = false;
-
-                // --- UPDATED COLOR MAPPING ---
+                // Colors
                 const PROFILE_COLORS = {
-                    Texts: "#10b981", // Green
-                    xml: "#3b82f6", // Blue
-                    altoxml: "#f59e0b", // Amber
-                    "metadata-v1": "#8b5cf6", // Purple
-                    "metadata-v2": "#ec4899", // Pink
-                    avif: "#f9ec16", // Yellow (Adjusted for readability)
-                    default: "#6b7280", // Gray
+                    Texts: "#10b981",
+                    xml: "#3b82f6",
+                    altoxml: "#f59e0b",
+                    "metadata-v1": "#8b5cf6",
+                    "metadata-v2": "#ec4899",
+                    avif: "#f9ec16",
+                    default: "#6b7280",
                 };
 
-                // Apply colors to the legend dots
                 document.querySelectorAll(".color-dot").forEach((dot) => {
                     const profile = dot.dataset.profile;
                     const color =
@@ -725,50 +664,78 @@
 
                 function getSelectedProfiles() {
                     const selected = new Set();
-                    controls
-                        .querySelectorAll('input[type="checkbox"]:checked')
-                        .forEach((cb) => {
-                            selected.add(cb.value);
-                        });
+                    if (controls)
+                        controls
+                            .querySelectorAll('input[type="checkbox"]:checked')
+                            .forEach((cb) => selected.add(cb.value));
                     return selected;
                 }
 
                 function getSelectedJournals() {
                     const selected = new Set();
-                    journalControls
-                        .querySelectorAll('input[type="checkbox"]:checked')
-                        .forEach((cb) => {
-                            selected.add(cb.value);
-                        });
+                    if (journalControls)
+                        journalControls
+                            .querySelectorAll('input[type="checkbox"]:checked')
+                            .forEach((cb) => selected.add(cb.value));
                     return selected;
                 }
 
-                // Global function for Select/Deselect All
-                window.toggleAllJournals = function (checked) {
-                    journalControls
-                        .querySelectorAll('input[type="checkbox"]')
-                        .forEach((cb) => (cb.checked = checked));
-                    updateTable();
-                    document.getElementById("timeline-container").innerHTML =
-                        "";
-                    if (
-                        !document
-                            .getElementById("view-timeline")
-                            .classList.contains("hidden")
-                    ) {
-                        renderTimeline();
+                function saveFilters() {
+                    const selected = Array.from(getSelectedProfiles());
+                    localStorage.setItem(storageKey, JSON.stringify(selected));
+                }
+
+                function loadFilters() {
+                    const saved = localStorage.getItem(storageKey);
+                    if (saved) {
+                        const selectedProfiles = new Set(JSON.parse(saved));
+                        controls
+                            .querySelectorAll('input[type="checkbox"]')
+                            .forEach((cb) => {
+                                cb.checked = selectedProfiles.has(cb.value);
+                            });
                     }
-                    updateSelectionStats();
+                }
+
+                // Globals overrides
+                window.toggleAllJournals = function (checked) {
+                    if (journalControls) {
+                        journalControls
+                            .querySelectorAll('input[type="checkbox"]')
+                            .forEach((cb) => (cb.checked = checked));
+                        updateTable();
+                        const timelineContainer =
+                            document.getElementById("timeline-container");
+                        if (timelineContainer) timelineContainer.innerHTML = "";
+                        if (
+                            !document
+                                .getElementById("view-timeline")
+                                .classList.contains("hidden")
+                        )
+                            renderTimeline();
+                        updateSelectionStats();
+                    }
                 };
 
-                // --- EXISTING RING LOGIC ---
+                window.clearTimelineSelection = function () {
+                    selectionStart = null;
+                    selectionEnd = null;
+                    document
+                        .getElementById("selection-stats")
+                        .classList.add("hidden");
+                    document
+                        .querySelectorAll(".header-cell")
+                        .forEach((h) =>
+                            h.classList.remove("header-cell-selected"),
+                        );
+                };
+
+                // RINGS
                 function renderActivityRings(container, ringData) {
                     container.innerHTML = "";
                     const size = 120;
                     const strokeWidth = 6;
-                    const gap = 3;
                     const center = size / 2;
-
                     const svg = document.createElementNS(
                         "http://www.w3.org/2000/svg",
                         "svg",
@@ -777,15 +744,12 @@
                     svg.setAttribute("height", size);
                     svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
 
-                    const legendDiv = document.createElement("div");
-                    legendDiv.className = "ring-legend";
-
                     const maxRadius = size / 2 - strokeWidth / 2;
+                    const gap = 3;
 
                     ringData.forEach((ring, index) => {
                         const radius = maxRadius - index * (strokeWidth + gap);
                         if (radius <= 0) return;
-
                         const circumference = 2 * Math.PI * radius;
                         const offset =
                             circumference -
@@ -804,6 +768,8 @@
                         bgCircle.setAttribute("r", radius);
                         bgCircle.setAttribute("stroke-width", strokeWidth);
                         bgCircle.setAttribute("class", "ring-bg");
+                        bgCircle.style.fill = "none";
+                        bgCircle.style.stroke = "#e5e7eb";
                         svg.appendChild(bgCircle);
 
                         const progressCircle = document.createElementNS(
@@ -827,228 +793,223 @@
                             offset,
                         );
                         progressCircle.setAttribute("class", "ring-progress");
+                        progressCircle.style.fill = "none";
+                        progressCircle.style.stroke = color;
+                        progressCircle.style.transition =
+                            "stroke-dashoffset 0.5s ease-in-out";
+                        progressCircle.style.transform = "rotate(-90deg)";
+                        progressCircle.style.transformOrigin = "50% 50%";
                         svg.appendChild(progressCircle);
-
-                        const legendItem = document.createElement("div");
-                        legendItem.className = "legend-item";
-                        legendItem.innerHTML = `<span class="legend-color" style="background-color: ${color}"></span><span class="legend-text">${ring.profile}: ${ring.percent.toFixed(1)}%</span>`;
-                        legendDiv.appendChild(legendItem);
                     });
-
                     container.appendChild(svg);
-                    container.appendChild(legendDiv);
                 }
 
                 function updateTable() {
-                    const selectedProfiles = getSelectedProfiles();
-                    const selectedJournals = getSelectedJournals();
-                    const activeProfileList = Array.from(selectedProfiles);
+                    try {
+                        const selectedProfiles = getSelectedProfiles();
+                        const selectedJournals = getSelectedJournals();
+                        const activeProfileList = Array.from(selectedProfiles);
 
-                    tableRows.forEach((row) => {
-                        const journalName = row.dataset.journalName;
+                        tableRows.forEach((row) => {
+                            const journalName = row.dataset.journalName;
 
-                        // 1. Hide/Show Row based on Journal Filter
-                        if (!selectedJournals.has(journalName)) {
-                            row.style.display = "none";
-                            return;
-                        } else {
-                            row.style.display = "";
-                        }
-
-                        // 2. Update Rings/Stats based on Profile Filter
-                        const totalImages =
-                            parseInt(row.dataset.totalImages, 10) || 0;
-                        let totalMissing = 0;
-                        const ringData = [];
-
-                        activeProfileList.forEach((profile) => {
-                            let missingCount = 0;
-                            if (profile === "Texts") {
-                                missingCount =
-                                    parseInt(row.dataset.missingTexts, 10) || 0;
-                            } else {
-                                const camelCaseKey = toCamelCase(
-                                    `missing-${profile}`,
-                                );
-                                missingCount =
-                                    parseInt(row.dataset[camelCaseKey], 10) ||
-                                    0;
-                            }
-                            totalMissing += missingCount;
-
-                            let percent = 0;
-                            if (totalImages > 0) {
-                                percent =
-                                    ((totalImages - missingCount) /
-                                        totalImages) *
-                                    100;
-                            } else if (
-                                totalImages === 0 &&
-                                missingCount === 0
+                            if (
+                                selectedJournals.size > 0 &&
+                                !selectedJournals.has(journalName)
                             ) {
-                                percent = 100;
+                                row.style.display = "none";
+                                return;
+                            } else {
+                                row.style.display = "";
                             }
-                            ringData.push({
-                                profile: profile,
-                                percent: Math.max(0, percent),
+
+                            const totalImages =
+                                parseInt(row.dataset.totalImages, 10) || 0;
+                            let totalMissing = 0;
+                            const ringData = [];
+
+                            activeProfileList.forEach((profile) => {
+                                let missingCount = 0;
+                                if (profile === "Texts") {
+                                    missingCount =
+                                        parseInt(
+                                            row.dataset.missingTexts,
+                                            10,
+                                        ) || 0;
+                                } else {
+                                    const camelCaseKey = toCamelCase(
+                                        `missing-${profile}`,
+                                    );
+                                    missingCount =
+                                        parseInt(
+                                            row.dataset[camelCaseKey],
+                                            10,
+                                        ) || 0;
+                                }
+                                totalMissing += missingCount;
+
+                                let percent = 0;
+                                if (totalImages > 0) {
+                                    percent =
+                                        ((totalImages - missingCount) /
+                                            totalImages) *
+                                        100;
+                                } else if (
+                                    totalImages === 0 &&
+                                    missingCount === 0
+                                ) {
+                                    percent = 100;
+                                }
+                                ringData.push({
+                                    profile: profile,
+                                    percent: Math.max(0, percent),
+                                });
                             });
-                        });
 
-                        const totalPossible =
-                            totalImages * activeProfileList.length;
-                        let overallConsistency = 100.0;
-                        if (totalPossible > 0) {
-                            overallConsistency = Math.max(
-                                0,
-                                ((totalPossible - totalMissing) /
-                                    totalPossible) *
-                                    100,
+                            const totalPossible =
+                                totalImages * activeProfileList.length;
+                            let overallConsistency = 100.0;
+                            if (totalPossible > 0) {
+                                overallConsistency = Math.max(
+                                    0,
+                                    ((totalPossible - totalMissing) /
+                                        totalPossible) *
+                                        100,
+                                );
+                            } else if (totalImages > 0) {
+                                overallConsistency = 0;
+                            }
+
+                            const missingEl =
+                                row.querySelector(".total-missing");
+                            if (missingEl)
+                                missingEl.textContent =
+                                    totalMissing.toLocaleString();
+
+                            const consistEl = row.querySelector(
+                                ".consistency-percent",
                             );
-                        } else if (totalImages > 0) {
-                            overallConsistency = 0;
-                        }
+                            if (consistEl)
+                                consistEl.textContent = `${overallConsistency.toFixed(2)}%`;
 
-                        row.querySelector(".total-missing").textContent =
-                            totalMissing.toLocaleString();
-                        row.querySelector(".consistency-percent").textContent =
-                            `${overallConsistency.toFixed(2)}%`;
-
-                        const ringContainer =
-                            row.querySelector(".ring-container");
-                        if (ringContainer) {
-                            renderActivityRings(ringContainer, ringData);
-                        }
-                    });
+                            const ringContainer =
+                                row.querySelector(".ring-container");
+                            if (ringContainer) {
+                                renderActivityRings(ringContainer, ringData);
+                            }
+                        });
+                    } catch (e) {
+                        console.error("Table Update Error", e);
+                    }
                 }
 
-                // --- SELECTION LOGIC ---
-                window.clearTimelineSelection = function () {
-                    selectionStart = null;
-                    selectionEnd = null;
-                    document
-                        .getElementById("selection-stats")
-                        .classList.add("hidden");
-                    const headers = document.querySelectorAll(".header-cell");
-                    headers.forEach((h) =>
-                        h.classList.remove("header-cell-selected"),
-                    );
-                };
+                // --- TIMELINE LOGIC ---
+                let selectionStart = null;
+                let selectionEnd = null;
+                let isSelecting = false;
+                let minYear = 3000;
+                let maxYear = 1000;
+
+                try {
+                    Object.keys(DATASET_RESULTS).forEach((name) => {
+                        Object.keys(DATASET_RESULTS[name].years).forEach(
+                            (yStr) => {
+                                const y = parseInt(yStr.split("-")[0]);
+                                if (y < minYear) minYear = y;
+                                if (y > maxYear) maxYear = y;
+                            },
+                        );
+                    });
+                    if (minYear > maxYear) {
+                        minYear = 1900;
+                        maxYear = 2000;
+                    }
+                } catch (e) {}
 
                 function updateSelectionStats() {
                     if (selectionStart === null || selectionEnd === null)
                         return;
-
                     const start = Math.min(selectionStart, selectionEnd);
                     const end = Math.max(selectionStart, selectionEnd);
 
-                    const headers = document.querySelectorAll(".header-cell");
-                    headers.forEach((h) => {
+                    document.querySelectorAll(".header-cell").forEach((h) => {
                         const y = parseInt(h.dataset.year);
-                        if (y >= start && y <= end) {
+                        if (y >= start && y <= end)
                             h.classList.add("header-cell-selected");
-                        } else {
-                            h.classList.remove("header-cell-selected");
-                        }
+                        else h.classList.remove("header-cell-selected");
                     });
 
                     let totalImages = 0;
                     const selectedJournals = getSelectedJournals();
 
-                    // Iterate only selected journals
                     selectedJournals.forEach((name) => {
                         if (!DATASET_RESULTS[name]) return;
                         const yearsData = DATASET_RESULTS[name].years;
                         for (let y = start; y <= end; y++) {
                             const yearKey = String(y);
-                            if (yearsData[yearKey]) {
+                            if (yearsData[yearKey])
                                 totalImages +=
                                     yearsData[yearKey].summary.images;
-                            }
                         }
                     });
 
-                    const statsBox = document.getElementById("selection-stats");
-                    statsBox.classList.remove("hidden");
-                    // UPDATED: Set Input Value instead of Text Content
-                    // Only update if not currently focused to avoid fighting user typing
-                    if (document.activeElement !== rangeInput) {
+                    document
+                        .getElementById("selection-stats")
+                        .classList.remove("hidden");
+                    if (rangeInput && document.activeElement !== rangeInput)
                         rangeInput.value = `${start} - ${end}`;
-                    }
                     document.getElementById(
                         "selection-total-count",
                     ).textContent = totalImages.toLocaleString();
                 }
 
-                // --- KEYBOARD INPUT HANDLER ---
-                rangeInput.addEventListener("change", function () {
-                    const val = this.value;
-                    // Try parsing "YYYY - YYYY" or "YYYY-YYYY" or just "YYYY"
-                    const matchRange = val.match(/(\d{4})\s*[-–]\s*(\d{4})/);
-                    const matchSingle = val.match(/^(\d{4})$/);
+                if (rangeInput) {
+                    rangeInput.addEventListener("change", function () {
+                        const val = this.value;
+                        const matchRange = val.match(
+                            /(\d{4})\s*[-–]\s*(\d{4})/,
+                        );
+                        const matchSingle = val.match(/^(\d{4})$/);
+                        let s, e;
+                        if (matchRange) {
+                            s = parseInt(matchRange[1]);
+                            e = parseInt(matchRange[2]);
+                        } else if (matchSingle) {
+                            s = parseInt(matchSingle[1]);
+                            e = s;
+                        } else return;
+                        if (s < minYear) s = minYear;
+                        if (e > maxYear) e = maxYear;
+                        selectionStart = s;
+                        selectionEnd = e;
+                        this.blur();
+                        updateSelectionStats();
+                    });
+                }
 
-                    let s, e;
-
-                    if (matchRange) {
-                        s = parseInt(matchRange[1]);
-                        e = parseInt(matchRange[2]);
-                    } else if (matchSingle) {
-                        s = parseInt(matchSingle[1]);
-                        e = s; // Single year range
-                    } else {
-                        // Invalid: reset if we have a valid selection, else do nothing
-                        if (selectionStart !== null && selectionEnd !== null) {
-                            const start = Math.min(
-                                selectionStart,
-                                selectionEnd,
-                            );
-                            const end = Math.max(selectionStart, selectionEnd);
-                            this.value = `${start} - ${end}`;
-                        }
-                        return;
-                    }
-
-                    // Clamp to bounds
-                    if (s < minYear) s = minYear;
-                    if (e > maxYear) e = maxYear;
-                    if (s > maxYear) s = maxYear;
-                    if (e < minYear) e = minYear;
-
-                    selectionStart = s;
-                    selectionEnd = e;
-
-                    // Manually blur to trigger UI updates if needed
-                    this.blur();
-                    updateSelectionStats();
-                });
-
-                // --- NEW TIMELINE LOGIC ---
-                window.renderTimeline = function () {
+                function renderTimeline() {
                     const container =
                         document.getElementById("timeline-container");
-                    container.innerHTML = ""; // Always clear to redraw when filtering journals
+                    if (!container) return;
+                    container.innerHTML = "";
 
                     const activeProfileList = Array.from(
                         controls.querySelectorAll('input[type="checkbox"]'),
                     )
                         .filter((cb) => cb.checked)
                         .map((cb) => cb.value);
-
                     const selectedJournalSet = getSelectedJournals();
                     const journalNames = Array.from(selectedJournalSet).sort();
 
                     if (journalNames.length === 0) {
                         container.innerHTML =
-                            "<p class='text-gray-500 text-center p-8'>No journals selected. Please check the filter above.</p>";
+                            "<p class='text-gray-500 text-center p-8'>No journals selected.</p>";
                         return;
                     }
 
-                    // (Global minYear/maxYear logic moved to DOMContentLoaded top)
-
-                    // 2. Build Grid
                     const gridTable = document.createElement("div");
                     gridTable.className = "flex flex-col gap-1 min-w-max";
 
-                    // Header (Years) - INTERACTIVE
                     const headerRow = document.createElement("div");
                     headerRow.className = "flex";
                     const spacer = document.createElement("div");
@@ -1065,17 +1026,12 @@
                             cell.style.borderLeftColor = "#ccc";
                         }
                         cell.dataset.year = y;
-
-                        // Re-apply selection highlight if redraw happened during selection
                         if (selectionStart !== null && selectionEnd !== null) {
                             const s = Math.min(selectionStart, selectionEnd);
                             const e = Math.max(selectionStart, selectionEnd);
                             if (y >= s && y <= e)
                                 cell.classList.add("header-cell-selected");
                         }
-
-                        cell.title = `Click and drag to select range starting from ${y}`;
-
                         cell.addEventListener("mousedown", (e) => {
                             e.preventDefault();
                             isSelecting = true;
@@ -1083,34 +1039,28 @@
                             selectionEnd = y;
                             updateSelectionStats();
                         });
-
                         cell.addEventListener("mouseenter", () => {
                             if (isSelecting) {
                                 selectionEnd = y;
                                 updateSelectionStats();
                             }
                         });
-
                         headerRow.appendChild(cell);
                     }
-
-                    document.addEventListener("mouseup", () => {
-                        isSelecting = false;
-                    });
-
+                    document.addEventListener(
+                        "mouseup",
+                        () => (isSelecting = false),
+                    );
                     gridTable.appendChild(headerRow);
 
-                    // Rows (Journals)
                     journalNames.forEach((name) => {
                         const row = document.createElement("div");
                         row.className =
                             "flex h-12 items-center border-b border-gray-100 hover:bg-gray-100";
-
                         const label = document.createElement("div");
                         label.className =
                             "w-40 pr-2 text-right text-xs font-bold text-gray-700 flex-shrink-0 sticky left-0 bg-gray-50 z-10 border-r h-full flex items-center justify-end truncate";
                         label.textContent = name;
-                        label.title = name;
                         row.appendChild(label);
 
                         const yearsData = DATASET_RESULTS[name]
@@ -1122,13 +1072,11 @@
                             cell.className =
                                 "w-6 h-8 flex-shrink-0 timeline-cell border border-white relative group";
                             let yearKey = String(y);
-
                             if (!yearsData[yearKey]) {
                                 cell.style.backgroundColor = "#f3f4f6";
                             } else {
                                 const yData = yearsData[yearKey];
                                 const totalImages = yData.summary.images;
-
                                 if (totalImages === 0) {
                                     cell.style.backgroundColor = "#e5e7eb";
                                 } else {
@@ -1137,7 +1085,6 @@
                                         document.createElement("div");
                                     stripesContainer.className =
                                         "flex w-full h-full";
-
                                     let tooltipContent = `<strong>${name} (${y})</strong><br/><hr class="my-1 border-gray-600"/>`;
 
                                     activeProfileList.forEach((p) => {
@@ -1146,32 +1093,28 @@
                                             if (
                                                 yData.summary.profile_counts
                                                     .texts_group
-                                            ) {
+                                            )
                                                 missing =
                                                     yData.summary.profile_counts
                                                         .texts_group
                                                         .missing_coverage;
-                                            }
                                         } else {
                                             missing =
                                                 yData.summary.profile_counts[
                                                     p
                                                 ] || 0;
                                         }
-
                                         let percent =
                                             ((totalImages - missing) /
                                                 totalImages) *
                                             100;
-
                                         const stripe =
                                             document.createElement("div");
                                         stripe.className = "flex-1 h-full";
-
-                                        if (percent === 0) {
+                                        if (percent === 0)
                                             stripe.style.backgroundColor =
                                                 "#4b5563";
-                                        } else {
+                                        else {
                                             const color =
                                                 PROFILE_COLORS[p] ||
                                                 PROFILE_COLORS[
@@ -1186,22 +1129,12 @@
                                             );
                                         }
                                         stripesContainer.appendChild(stripe);
-
                                         tooltipContent += `<div class="flex justify-between items-center text-[10px] mt-1"><span>${p}:</span> <span>${percent.toFixed(0)}%</span></div>`;
                                     });
-
                                     cell.appendChild(stripesContainer);
-
-                                    const toolTipHTML = `
-                                        <div class="tooltip w-full h-full absolute top-0 left-0">
-                                            <span class="tooltip-text">
-                                                ${tooltipContent}
-                                            </span>
-                                        </div>
-                                    `;
                                     cell.insertAdjacentHTML(
                                         "beforeend",
-                                        toolTipHTML,
+                                        `<div class="tooltip w-full h-full absolute top-0 left-0"><span class="tooltip-text">${tooltipContent}</span></div>`,
                                     );
                                 }
                             }
@@ -1209,103 +1142,85 @@
                         }
                         gridTable.appendChild(row);
                     });
-
                     container.appendChild(gridTable);
-                };
+                }
 
-                // --- Bar Chart Logic ---
-                const chartCtx = document
-                    .getElementById("journalSizeChart")
-                    .getContext("2d");
-                const journalLabels = Array.from(tableRows).map((row) =>
-                    row.children[0].textContent.trim(),
-                );
-                const imageCounts = Array.from(tableRows).map((row) =>
-                    parseInt(row.dataset.totalImages, 10),
-                );
+                document.addEventListener("triggerTimelineRender", function () {
+                    renderTimeline();
+                });
 
-                const chart = new Chart(chartCtx, {
-                    type: "bar",
-                    data: {
-                        labels: journalLabels,
-                        datasets: [
-                            {
-                                label: "Total Image Count",
-                                data: imageCounts,
-                                backgroundColor: "rgba(59, 130, 246, 0.5)",
-                                borderColor: "rgba(59, 130, 246, 1)",
-                                borderWidth: 1,
-                            },
-                        ],
-                    },
-                    options: {
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                type: "logarithmic",
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: function (value, index, values) {
-                                        if (value >= 1000000)
-                                            return value / 1000000 + "M";
-                                        if (value >= 1000)
-                                            return value / 1000 + "K";
-                                        return value;
+                const chartCtx = document.getElementById("journalSizeChart");
+                if (chartCtx) {
+                    const journalLabels = Array.from(tableRows).map((row) =>
+                        row.children[0].textContent.trim(),
+                    );
+                    const imageCounts = Array.from(tableRows).map((row) =>
+                        parseInt(row.dataset.totalImages, 10),
+                    );
+                    new Chart(chartCtx.getContext("2d"), {
+                        type: "bar",
+                        data: {
+                            labels: journalLabels,
+                            datasets: [
+                                {
+                                    label: "Total Image Count",
+                                    data: imageCounts,
+                                    backgroundColor: "rgba(59, 130, 246, 0.5)",
+                                    borderColor: "rgba(59, 130, 246, 1)",
+                                    borderWidth: 1,
+                                },
+                            ],
+                        },
+                        options: {
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: { type: "logarithmic", beginAtZero: true },
+                                x: {
+                                    ticks: {
+                                        autoSkip: false,
+                                        maxRotation: 90,
+                                        minRotation: 45,
                                     },
                                 },
                             },
-                            x: {
-                                ticks: {
-                                    autoSkip: false,
-                                    maxRotation: 90,
-                                    minRotation: 45,
-                                },
-                            },
+                            plugins: { legend: { display: false } },
                         },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: function (context) {
-                                        return `Images: ${context.parsed.y.toLocaleString()}`;
-                                    },
-                                },
-                            },
-                        },
-                    },
-                });
+                    });
+                }
 
-                controls.addEventListener("change", () => {
-                    saveFilters();
-                    updateTable();
-                    // Force timeline update
-                    document.getElementById("timeline-container").innerHTML =
-                        "";
-                    if (
-                        !document
-                            .getElementById("view-timeline")
-                            .classList.contains("hidden")
-                    ) {
-                        renderTimeline();
-                    }
-                });
-
-                journalControls.addEventListener("change", () => {
-                    updateTable();
-                    document.getElementById("timeline-container").innerHTML =
-                        "";
-                    if (
-                        !document
-                            .getElementById("view-timeline")
-                            .classList.contains("hidden")
-                    ) {
-                        renderTimeline();
-                    }
-                    updateSelectionStats();
-                });
-
+                // Init
                 loadFilters();
                 updateTable();
+
+                if (controls)
+                    controls.addEventListener("change", () => {
+                        saveFilters();
+                        updateTable();
+                        const timelineContainer =
+                            document.getElementById("timeline-container");
+                        if (timelineContainer) timelineContainer.innerHTML = "";
+                        if (
+                            !document
+                                .getElementById("view-timeline")
+                                .classList.contains("hidden")
+                        )
+                            renderTimeline();
+                    });
+
+                if (journalControls)
+                    journalControls.addEventListener("change", () => {
+                        updateTable();
+                        const timelineContainer =
+                            document.getElementById("timeline-container");
+                        if (timelineContainer) timelineContainer.innerHTML = "";
+                        if (
+                            !document
+                                .getElementById("view-timeline")
+                                .classList.contains("hidden")
+                        )
+                            renderTimeline();
+                        updateSelectionStats();
+                    });
             });
         </script>
     </body>
