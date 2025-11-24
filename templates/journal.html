@@ -7,6 +7,7 @@
         <script src="https://cdn.tailwindcss.com"></script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <style>
+            /* Tooltip Styles */
             .tooltip {
                 position: relative;
                 display: inline-block;
@@ -15,18 +16,22 @@
             .tooltip .tooltip-text {
                 visibility: hidden;
                 width: 240px;
-                background-color: #555;
+                background-color: #1f2937; /* Gray 800 */
                 color: #fff;
                 text-align: left;
                 border-radius: 6px;
                 padding: 10px;
                 position: absolute;
-                z-index: 1;
+                z-index: 50;
                 bottom: 125%;
                 left: 50%;
                 margin-left: -120px;
                 opacity: 0;
-                transition: opacity 0.3s;
+                transition: opacity 0.2s;
+                font-size: 0.75rem;
+                box-shadow:
+                    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                    0 2px 4px -1px rgba(0, 0, 0, 0.06);
             }
             .tooltip .tooltip-text::after {
                 content: "";
@@ -36,20 +41,21 @@
                 margin-left: -5px;
                 border-width: 5px;
                 border-style: solid;
-                border-color: #555 transparent transparent transparent;
+                border-color: #1f2937 transparent transparent transparent;
             }
             .tooltip:hover .tooltip-text {
                 visibility: visible;
                 opacity: 1;
             }
-            /* Ring Styles */
+
+            /* Activity Ring Styles */
             .ring-container {
                 position: relative;
                 display: inline-block;
             }
             .ring-bg {
                 fill: none;
-                stroke: #e5e7eb; /* Fixed Light Gray for empty tracks */
+                stroke: #e5e7eb;
             }
             .ring-progress {
                 fill: none;
@@ -59,59 +65,14 @@
                 transition: stroke-dashoffset 0.5s ease-in-out;
             }
 
-            /* Hover Legend Styles */
-            .ring-legend {
-                display: none;
-                position: absolute;
-                bottom: 100%; /* Position above the ring */
-                left: 50%;
-                transform: translateX(-50%);
-                background-color: white;
-                border: 1px solid #e5e7eb;
-                padding: 8px;
-                border-radius: 6px;
-                box-shadow:
-                    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-                    0 2px 4px -1px rgba(0, 0, 0, 0.06);
-                z-index: 50;
-                width: max-content;
-                min-width: 120px;
-                font-size: 0.75rem;
-                pointer-events: none; /* Prevent mouse flickering */
-                margin-bottom: 8px;
+            /* Timeline Specific Styles */
+            .timeline-cell {
+                transition: all 0.2s;
             }
-            /* Tiny triangle pointer */
-            .ring-legend::after {
-                content: " ";
-                position: absolute;
-                top: 100%; /* At the bottom of the tooltip */
-                left: 50%;
-                margin-left: -5px;
-                border-width: 5px;
-                border-style: solid;
-                border-color: white transparent transparent transparent;
-            }
-            .ring-container:hover .ring-legend {
-                display: block;
-            }
-            .legend-item {
-                display: flex;
-                align-items: center;
-                margin-bottom: 4px;
-            }
-            .legend-item:last-child {
-                margin-bottom: 0;
-            }
-            .legend-color {
-                width: 8px;
-                height: 8px;
-                border-radius: 50%;
-                margin-right: 8px;
-                flex-shrink: 0;
-            }
-            .legend-text {
-                color: #374151; /* gray-700 */
-                font-weight: 500;
+            .timeline-cell:hover {
+                transform: scale(1.1);
+                z-index: 10;
+                border-color: #3b82f6; /* Blue border on hover */
             }
         </style>
     </head>
@@ -147,263 +108,334 @@
                 </nav>
             </header>
 
-            <!-- Bar Chart -->
+            <!-- Overview Chart (Always Visible) -->
             <div class="bg-white p-6 rounded-lg shadow-md mb-8">
                 <h2 class="text-2xl font-semibold text-gray-700 mb-4">
-                    Image Count Over Time
+                    Image Volume Over Time
                 </h2>
-                <div class="relative h-96">
+                <div class="relative h-64">
                     <canvas id="yearSizeChart"></canvas>
                 </div>
             </div>
 
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <!-- Filter Controls -->
-                <div class="mb-4 p-4 border rounded-lg bg-gray-50">
-                    <label class="font-semibold text-gray-700 block mb-2"
-                        >Calculate Consistency For (Legend):</label
-                    >
-                    <div
-                        id="filter-controls"
-                        class="flex flex-wrap gap-x-6 gap-y-2"
-                    >
-                        {% for profile in filter_profiles %}
-                        <div class="flex items-center">
-                            <input
-                                type="checkbox"
-                                id="{{ profile }}"
-                                name="{{ profile }}"
-                                value="{{ profile }}"
-                                checked
-                                class="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                            />
-                            <label
-                                for="{{ profile }}"
-                                class="text-gray-600 cursor-pointer flex items-center"
-                            >
-                                <!-- Color dot will be injected here by JS -->
-                                <span
-                                    class="color-dot w-3 h-3 rounded-full mr-2 inline-block bg-gray-400"
-                                    data-profile="{{ profile }}"
-                                ></span>
-                                {{ profile }}
-                            </label>
+            <!-- Tabs Navigation -->
+            <div class="mb-4 border-b border-gray-200">
+                <ul
+                    class="flex flex-wrap -mb-px text-sm font-medium text-center"
+                >
+                    <li class="mr-2">
+                        <button
+                            id="tab-btn-table"
+                            onclick="switchTab('table')"
+                            class="inline-block p-4 text-blue-600 border-b-2 border-blue-600 rounded-t-lg active group"
+                        >
+                            Table View
+                        </button>
+                    </li>
+                    <li class="mr-2">
+                        <button
+                            id="tab-btn-timeline"
+                            onclick="switchTab('timeline')"
+                            class="inline-block p-4 text-gray-500 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300"
+                        >
+                            Timeline & Coverage
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-md min-h-[500px]">
+                <!-- VIEW 1: TABLE -->
+                <div id="view-table">
+                    <!-- Filter Controls -->
+                    <div class="mb-4 p-4 border rounded-lg bg-gray-50">
+                        <label class="font-semibold text-gray-700 block mb-2"
+                            >Calculate Consistency For (Legend):</label
+                        >
+                        <div
+                            id="filter-controls"
+                            class="flex flex-wrap gap-x-6 gap-y-2"
+                        >
+                            {% for profile in filter_profiles %}
+                            <div class="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    id="{{ profile }}"
+                                    name="{{ profile }}"
+                                    value="{{ profile }}"
+                                    checked
+                                    class="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                />
+                                <label
+                                    for="{{ profile }}"
+                                    class="text-gray-600 cursor-pointer flex items-center"
+                                >
+                                    <span
+                                        class="color-dot w-3 h-3 rounded-full mr-2 inline-block bg-gray-400"
+                                        data-profile="{{ profile }}"
+                                    ></span>
+                                    {{ profile }}
+                                </label>
+                            </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table
+                            id="years-table"
+                            class="min-w-full divide-y divide-gray-200"
+                        >
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                        Year / Range
+                                    </th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                        Image Count
+                                    </th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                        Complete data/metadata
+                                    </th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                        Incomplete/Missing Data
+                                    </th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                        Total Missing*
+                                    </th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                        Consistency*
+                                    </th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                        Progress
+                                    </th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                        Details
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for year, year_data in data.years|dictsort %}
+                                <tr
+                                    class="year-row"
+                                    data-year="{{ year }}"
+                                    data-total-images="{{ year_data.summary.images }}"
+                                    data-missing-texts-group="{{ year_data.summary.profile_counts.texts_group.missing_coverage if year_data.summary.profile_counts.texts_group is defined else 0 }}"
+                                    {%
+                                    for
+                                    profile,
+                                    count
+                                    in
+                                    year_data.summary.profile_counts.items()
+                                    if
+                                    profile
+                                    !="texts_group"
+                                    %}
+                                    data-missing-{{
+                                    profile
+                                    }}="{{ count }}"
+                                    {%
+                                    endfor
+                                    %}
+                                    data-missing-texts="{{ year_data.summary.profile_counts.texts_group.missing_coverage }}"
+                                >
+                                    <td
+                                        class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 align-top"
+                                    >
+                                        {{ year }}
+                                    </td>
+                                    <td
+                                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top"
+                                    >
+                                        {{
+                                        "{:,}".format(year_data.summary.images)
+                                        }}
+                                    </td>
+                                    <!-- Complete Data Column -->
+                                    <td
+                                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top"
+                                    >
+                                        <div
+                                            class="flex flex-col gap-2 items-start"
+                                        >
+                                            {% set texts_group =
+                                            year_data.summary.profile_counts.texts_group
+                                            %} {% if
+                                            texts_group.missing_coverage == 0
+                                            and year_data.summary.images > 0 %}
+                                            <div>
+                                                <span
+                                                    class="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"
+                                                    >✅ Texts</span
+                                                >
+                                            </div>
+                                            {% endif %} {% for profile, count in
+                                            year_data.summary.profile_counts|dictsort
+                                            %} {% if profile != 'texts_group'
+                                            and count == 0 and
+                                            year_data.summary.images > 0 %}
+                                            <span
+                                                class="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"
+                                                >✅ {{ profile }}</span
+                                            >
+                                            {% endif %} {% endfor %}
+                                        </div>
+                                    </td>
+                                    <!-- Incomplete/Missing Data Column -->
+                                    <td
+                                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top"
+                                    >
+                                        <div
+                                            class="flex flex-col gap-3 items-start"
+                                        >
+                                            {% set texts_group =
+                                            year_data.summary.profile_counts.texts_group
+                                            %} {% if
+                                            texts_group.missing_coverage > 0 %}
+                                            <div>
+                                                <span
+                                                    class="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800"
+                                                    >🟡 Texts: {{
+                                                    "{:,}".format(texts_group.missing_coverage)
+                                                    }} missing</span
+                                                >
+                                            </div>
+                                            {% endif %} {% for profile, count in
+                                            year_data.summary.profile_counts|dictsort
+                                            if profile != 'texts_group' and
+                                            count > 0 %}
+                                            <span
+                                                class="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800"
+                                                >🟡 {{ profile }}: {{
+                                                "{:,}".format(count) }}
+                                                missing</span
+                                            >
+                                            {% endfor %}
+                                        </div>
+                                    </td>
+                                    <td
+                                        class="total-missing px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold align-top"
+                                    ></td>
+                                    <td
+                                        class="consistency-percent px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold align-top"
+                                    ></td>
+                                    <td
+                                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top"
+                                    >
+                                        <div
+                                            class="ring-container"
+                                            style="width: 80px; height: 80px"
+                                        ></div>
+                                    </td>
+                                    <td
+                                        class="px-6 py-4 whitespace-nowrap text-sm font-medium align-top"
+                                    >
+                                        <a
+                                            href="{{ url_for('year_detail', journal_name=journal_name, year_str=year) }}"
+                                            class="text-blue-600 hover:text-blue-900"
+                                            >Details</a
+                                        >
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table
-                        id="years-table"
-                        class="min-w-full divide-y divide-gray-200"
-                    >
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
-                                    Year / Range
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
-                                    Image Count
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
-                                    Complete data/metadata
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
-                                    Incomplete/Missing Data
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
-                                    Total Missing*
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
-                                    Consistency*
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
-                                    Progress
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
-                                    Details
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            {% for year, year_data in data.years|dictsort %}
-                            <tr
-                                class="year-row"
-                                data-total-images="{{ year_data.summary.images }}"
-                                data-missing-texts-group="{{ year_data.summary.profile_counts.texts_group.missing_coverage if year_data.summary.profile_counts.texts_group is defined else 0 }}"
-                                {%
-                                for
-                                profile,
-                                count
-                                in
-                                year_data.summary.profile_counts.items()
-                                if
-                                profile
-                                !="texts_group"
-                                %}
-                                data-missing-{{
-                                profile
-                                }}="{{ count }}"
-                                {%
-                                endfor
-                                %}
-                                data-missing-texts="{{ year_data.summary.profile_counts.texts_group.missing_coverage }}"
-                            >
-                                <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 align-top"
-                                >
-                                    {{ year }}
-                                </td>
-                                <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top"
-                                >
-                                    {{ "{:,}".format(year_data.summary.images)
-                                    }}
-                                </td>
+                <!-- VIEW 2: TIMELINE HEATMAP -->
+                <div id="view-timeline" class="hidden">
+                    <div class="mb-6">
+                        <h3 class="text-xl font-bold text-gray-700 mb-2">
+                            Dataset Timeline & Coverage Heatmap
+                        </h3>
+                        <p class="text-sm text-gray-500 mb-4">
+                            Each horizontal lane represents a data profile.
+                            Blocks represent years. <br />
+                            <span
+                                class="inline-block w-3 h-3 bg-gray-200 border border-gray-400 mr-1"
+                            ></span>
+                            Gray = Year missing from dataset.
+                            <span
+                                class="inline-block w-3 h-3 bg-red-500 mr-1 ml-2"
+                            ></span>
+                            Red/X = 0% coverage.
+                            <span
+                                class="inline-block w-3 h-3 bg-opacity-50 bg-green-500 mr-1 ml-2"
+                            ></span>
+                            Faded = Partial.
+                            <span
+                                class="inline-block w-3 h-3 bg-green-500 mr-1 ml-2"
+                            ></span>
+                            Solid = 100%.
+                        </p>
+                    </div>
 
-                                <!-- Complete Data Column -->
-                                <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top"
-                                >
-                                    <div
-                                        class="flex flex-col gap-2 items-start"
-                                    >
-                                        {% set texts_group =
-                                        year_data.summary.profile_counts.texts_group
-                                        %} {% if texts_group.missing_coverage ==
-                                        0 and year_data.summary.images > 0 %}
-                                        <div>
-                                            <span
-                                                class="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"
-                                                >✅ Texts</span
-                                            >
-                                            <div
-                                                class="pl-4 mt-1 text-xs text-gray-600"
-                                            >
-                                                {% for edition, count in
-                                                texts_group.edition_counts|dictsort
-                                                %}
-                                                <p>
-                                                    &bull; {{ edition }}: {{
-                                                    "{:,}".format(count) }}
-                                                    present
-                                                </p>
-                                                {% endfor %}
-                                            </div>
-                                        </div>
-                                        {% endif %} {% for profile, count in
-                                        year_data.summary.profile_counts|dictsort
-                                        %} {% if profile != 'texts_group' and
-                                        count == 0 and year_data.summary.images
-                                        > 0 %}
-                                        <span
-                                            class="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"
-                                            >✅ {{ profile }}: {{
-                                            "{:,}".format(year_data.summary.images)
-                                            }}</span
-                                        >
-                                        {% endif %} {% endfor %}
-                                    </div>
-                                </td>
-
-                                <!-- Incomplete/Missing Data Column -->
-                                <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top"
-                                >
-                                    <div
-                                        class="flex flex-col gap-3 items-start"
-                                    >
-                                        {% set texts_group =
-                                        year_data.summary.profile_counts.texts_group
-                                        %} {% if texts_group.missing_coverage >
-                                        0 %}
-                                        <div>
-                                            <span
-                                                class="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800"
-                                                >🟡 Texts: {{
-                                                "{:,}".format(texts_group.missing_coverage)
-                                                }} missing coverage</span
-                                            >
-                                            <div
-                                                class="pl-4 mt-1 text-xs text-gray-600"
-                                            >
-                                                {% for edition, count in
-                                                texts_group.edition_counts|dictsort
-                                                %}
-                                                <p>
-                                                    &bull; {{ edition }}: {{
-                                                    "{:,}".format(count) }}
-                                                    present
-                                                </p>
-                                                {% endfor %}
-                                            </div>
-                                        </div>
-                                        {% endif %} {% for profile, count in
-                                        year_data.summary.profile_counts|dictsort
-                                        if profile != 'texts_group' and count >
-                                        0 %}
-                                        <span
-                                            class="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800"
-                                            >🟡 {{ profile }}: {{
-                                            "{:,}".format(count) }} missing / {{
-                                            "{:,}".format(year_data.summary.images
-                                            - count) }} present</span
-                                        >
-                                        {% endfor %}
-                                    </div>
-                                </td>
-
-                                <td
-                                    class="total-missing px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold align-top"
-                                ></td>
-                                <td
-                                    class="consistency-percent px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold align-top"
-                                ></td>
-                                <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top"
-                                >
-                                    <div
-                                        class="ring-container"
-                                        style="width: 120px; height: 120px"
-                                    ></div>
-                                </td>
-                                <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm font-medium align-top"
-                                >
-                                    <a
-                                        href="{{ url_for('year_detail', journal_name=journal_name, year_str=year) }}"
-                                        class="text-blue-600 hover:text-blue-900"
-                                        >View Details</a
-                                    >
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                    <div
+                        id="timeline-container"
+                        class="overflow-x-auto border rounded-lg p-4 bg-gray-50"
+                    ></div>
                 </div>
-                <p class="text-xs text-gray-400 mt-4">
-                    * Values are calculated based on the selected profiles.
-                </p>
             </div>
         </div>
         <script>
+            // Tab Switching Logic
+            function switchTab(tabName) {
+                const tableBtn = document.getElementById("tab-btn-table");
+                const timelineBtn = document.getElementById("tab-btn-timeline");
+                const tableView = document.getElementById("view-table");
+                const timelineView = document.getElementById("view-timeline");
+
+                const activeClasses = [
+                    "text-blue-600",
+                    "border-blue-600",
+                    "active",
+                ];
+                const inactiveClasses = [
+                    "text-gray-500",
+                    "border-transparent",
+                    "hover:text-gray-600",
+                    "hover:border-gray-300",
+                ];
+
+                if (tabName === "table") {
+                    tableView.classList.remove("hidden");
+                    timelineView.classList.add("hidden");
+
+                    tableBtn.classList.add(...activeClasses);
+                    tableBtn.classList.remove(...inactiveClasses);
+                    timelineBtn.classList.remove(...activeClasses);
+                    timelineBtn.classList.add(...inactiveClasses);
+                } else {
+                    tableView.classList.add("hidden");
+                    timelineView.classList.remove("hidden");
+
+                    timelineBtn.classList.add(...activeClasses);
+                    timelineBtn.classList.remove(...inactiveClasses);
+                    tableBtn.classList.remove(...activeClasses);
+                    tableBtn.classList.add(...inactiveClasses);
+
+                    // Trigger render if needed
+                    renderTimeline();
+                }
+            }
+
             document.addEventListener("DOMContentLoaded", function () {
                 const controls = document.getElementById("filter-controls");
                 const tableRows = document.querySelectorAll(".year-row");
@@ -430,7 +462,6 @@
                     dot.style.backgroundColor = color;
                 });
 
-                // --- FIX: Updated regex to include numbers 0-9 ---
                 function toCamelCase(str) {
                     return str.replace(/-([a-z0-9])/g, function (g) {
                         return g[1].toUpperCase();
@@ -464,14 +495,13 @@
                     }
                 }
 
+                // --- RING LOGIC (Condensed for brevity) ---
                 function renderActivityRings(container, ringData) {
                     container.innerHTML = "";
-                    const size = 120;
-                    const strokeWidth = 6;
-                    const gap = 3;
+                    const size = 80;
+                    const strokeWidth = 5;
+                    const gap = 2;
                     const center = size / 2;
-
-                    // Create SVG element
                     const svg = document.createElementNS(
                         "http://www.w3.org/2000/svg",
                         "svg",
@@ -480,17 +510,11 @@
                     svg.setAttribute("height", size);
                     svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
 
-                    // Create Legend Container
-                    const legendDiv = document.createElement("div");
-                    legendDiv.className = "ring-legend";
-
-                    // Calculate max radius based on number of rings
                     const maxRadius = size / 2 - strokeWidth / 2;
 
                     ringData.forEach((ring, index) => {
                         const radius = maxRadius - index * (strokeWidth + gap);
                         if (radius <= 0) return;
-
                         const circumference = 2 * Math.PI * radius;
                         const offset =
                             circumference -
@@ -500,7 +524,7 @@
                             PROFILE_COLORS[ring.profile.split("-")[0]] ||
                             PROFILE_COLORS["default"];
 
-                        // Background Circle (Track) - Fixed Gray
+                        // Bg
                         const bgCircle = document.createElementNS(
                             "http://www.w3.org/2000/svg",
                             "circle",
@@ -512,7 +536,7 @@
                         bgCircle.setAttribute("class", "ring-bg");
                         svg.appendChild(bgCircle);
 
-                        // Progress Circle
+                        // Progress
                         const progressCircle = document.createElementNS(
                             "http://www.w3.org/2000/svg",
                             "circle",
@@ -534,25 +558,12 @@
                             offset,
                         );
                         progressCircle.setAttribute("class", "ring-progress");
-
                         svg.appendChild(progressCircle);
-
-                        // Add item to legend
-                        const legendItem = document.createElement("div");
-                        legendItem.className = "legend-item";
-                        legendItem.innerHTML = `
-                        <span class="legend-color" style="background-color: ${color}"></span>
-                        <span class="legend-text">${ring.profile}: ${ring.percent.toFixed(1)}%</span>
-                    `;
-                        legendDiv.appendChild(legendItem);
                     });
-
                     container.appendChild(svg);
-                    container.appendChild(legendDiv);
                 }
 
                 function updateTable() {
-                    const selectedProfiles = getSelectedProfiles();
                     const activeProfileList = Array.from(
                         controls.querySelectorAll('input[type="checkbox"]'),
                     )
@@ -580,7 +591,6 @@
                             }
                             totalMissing += missingCount;
 
-                            // Calculate individual profile consistency for the ring
                             let percent = 0;
                             if (totalImages > 0) {
                                 percent =
@@ -617,7 +627,6 @@
                             totalMissing.toLocaleString();
                         row.querySelector(".consistency-percent").textContent =
                             `${overallConsistency.toFixed(2)}%`;
-
                         const ringContainer =
                             row.querySelector(".ring-container");
                         if (ringContainer) {
@@ -626,71 +635,216 @@
                     });
                 }
 
-                // --- Bar Chart Logic ---
-                const chartCtx = document
-                    .getElementById("yearSizeChart")
-                    .getContext("2d");
-                const yearLabels = Array.from(tableRows).map(
-                    (row) => row.children[0].textContent,
+                // --- CHART JS for Volume ---
+                const yearLabels = Array.from(tableRows).map((row) =>
+                    row.children[0].textContent.trim(),
                 );
                 const imageCounts = Array.from(tableRows).map((row) =>
                     parseInt(row.dataset.totalImages, 10),
                 );
+                new Chart(
+                    document.getElementById("yearSizeChart").getContext("2d"),
+                    {
+                        type: "bar",
+                        data: {
+                            labels: yearLabels,
+                            datasets: [
+                                {
+                                    label: "Image Count",
+                                    data: imageCounts,
+                                    backgroundColor: "rgba(34, 197, 94, 0.5)",
+                                    borderColor: "rgba(34, 197, 94, 1)",
+                                    borderWidth: 1,
+                                },
+                            ],
+                        },
+                        options: {
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: { type: "logarithmic", beginAtZero: true },
+                                x: {
+                                    ticks: { autoSkip: true, maxRotation: 90 },
+                                },
+                            },
+                            plugins: { legend: { display: false } },
+                        },
+                    },
+                );
 
-                new Chart(chartCtx, {
-                    type: "bar",
-                    data: {
-                        labels: yearLabels,
-                        datasets: [
-                            {
-                                label: "Image Count per Year",
-                                data: imageCounts,
-                                backgroundColor: "rgba(34, 197, 94, 0.5)",
-                                borderColor: "rgba(34, 197, 94, 1)",
-                                borderWidth: 1,
-                            },
-                        ],
-                    },
-                    options: {
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                type: "logarithmic",
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: function (value, index, values) {
-                                        if (value >= 1000000)
-                                            return value / 1000000 + "M";
-                                        if (value >= 1000)
-                                            return value / 1000 + "K";
-                                        return value;
-                                    },
-                                },
-                            },
-                            x: {
-                                ticks: {
-                                    autoSkip: true,
-                                    maxRotation: 90,
-                                    minRotation: 45,
-                                },
-                            },
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: function (context) {
-                                        return `Images: ${context.parsed.y.toLocaleString()}`;
-                                    },
-                                },
-                            },
-                        },
-                    },
-                });
+                // --- TIMELINE RENDERER ---
+                window.renderTimeline = function () {
+                    const container =
+                        document.getElementById("timeline-container");
+
+                    // Fixed Check: Count child elements instead of text content
+                    // Comments in HTML count as child nodes in innerHTML, breaking the old check.
+                    if (container.children.length > 0) return;
+
+                    // 1. Gather all data
+                    const allProfiles = Array.from(
+                        controls.querySelectorAll('input[type="checkbox"]'),
+                    ).map((cb) => cb.value);
+
+                    // Parse Years
+                    let minYear = 3000,
+                        maxYear = 1000;
+                    const yearDataMap = {}; // year -> { totalImages: int, missing: { profile: int } }
+
+                    tableRows.forEach((row) => {
+                        const yearStr = row.dataset.year;
+                        // Attempt to parse start year for chronological ordering
+                        const yearInt = parseInt(yearStr.split("-")[0]);
+                        if (!isNaN(yearInt)) {
+                            if (yearInt < minYear) minYear = yearInt;
+                            if (yearInt > maxYear) maxYear = yearInt;
+                        }
+
+                        const totalImages =
+                            parseInt(row.dataset.totalImages, 10) || 0;
+                        const missingData = {};
+                        allProfiles.forEach((p) => {
+                            if (p === "Texts") {
+                                missingData[p] =
+                                    parseInt(row.dataset.missingTexts, 10) || 0;
+                            } else {
+                                const camelCaseKey = toCamelCase(
+                                    `missing-${p}`,
+                                );
+                                missingData[p] =
+                                    parseInt(row.dataset[camelCaseKey], 10) ||
+                                    0;
+                            }
+                        });
+
+                        yearDataMap[yearInt] = {
+                            totalImages,
+                            missing: missingData,
+                            label: yearStr,
+                        };
+                    });
+
+                    if (minYear > maxYear) {
+                        container.innerHTML =
+                            "<p class='text-gray-500'>No valid years found for timeline.</p>";
+                        return;
+                    }
+
+                    // 2. Build Grid
+                    // Container for the timeline grid
+                    const gridTable = document.createElement("div");
+                    gridTable.className = "flex flex-col gap-1 min-w-max";
+
+                    // Header Row (Years)
+                    const headerRow = document.createElement("div");
+                    headerRow.className = "flex";
+                    // Spacer for row labels
+                    const spacer = document.createElement("div");
+                    spacer.className =
+                        "w-32 flex-shrink-0 sticky left-0 bg-gray-50 z-10 border-r";
+                    headerRow.appendChild(spacer);
+
+                    for (let y = minYear; y <= maxYear; y++) {
+                        const yearCell = document.createElement("div");
+                        yearCell.className =
+                            "w-8 text-[10px] text-gray-500 text-center flex-shrink-0 border-l border-transparent hover:bg-gray-200";
+                        if (y % 5 === 0 || y === minYear || y === maxYear) {
+                            yearCell.textContent = y;
+                            yearCell.style.borderLeftColor = "#ccc";
+                        }
+                        headerRow.appendChild(yearCell);
+                    }
+                    gridTable.appendChild(headerRow);
+
+                    // Profile Rows
+                    allProfiles.forEach((profile) => {
+                        const row = document.createElement("div");
+                        row.className =
+                            "flex h-10 items-center border-b border-gray-200";
+
+                        // Label
+                        const label = document.createElement("div");
+                        label.className =
+                            "w-32 pr-2 text-right text-xs font-bold text-gray-600 flex-shrink-0 sticky left-0 bg-gray-50 z-10 border-r h-full flex items-center justify-end shadow-sm";
+                        label.textContent = profile;
+                        row.appendChild(label);
+
+                        // Cells
+                        const baseColor = PROFILE_COLORS[profile] || "#888";
+
+                        for (let y = minYear; y <= maxYear; y++) {
+                            const cell = document.createElement("div");
+                            cell.className =
+                                "w-8 h-8 flex-shrink-0 timeline-cell border border-white relative";
+
+                            const data = yearDataMap[y];
+
+                            if (!data) {
+                                // Year missing from dataset completely
+                                cell.style.backgroundColor = "#f3f4f6"; // Gray 100
+                                cell.innerHTML = `<div class="tooltip w-full h-full"><span class="tooltip-text">Year ${y}<br/>Missing from dataset</span></div>`;
+                            } else {
+                                // Year exists
+                                const total = data.totalImages;
+                                if (total === 0) {
+                                    // Empty folder?
+                                    cell.style.backgroundColor = "#e5e7eb";
+                                } else {
+                                    const missing = data.missing[profile];
+                                    const percent =
+                                        ((total - missing) / total) * 100;
+
+                                    if (percent === 0) {
+                                        // 0% Coverage but images exist -> RED
+                                        cell.style.backgroundColor = "#fee2e2"; // Red 100
+                                        cell.innerHTML = `<div class="text-red-500 text-[10px] font-bold flex justify-center items-center w-full h-full">✕</div>`;
+                                    } else {
+                                        // Partial or Full
+                                        cell.style.backgroundColor = baseColor;
+                                        cell.style.opacity = Math.max(
+                                            0.1,
+                                            percent / 100,
+                                        );
+                                    }
+
+                                    // Tooltip
+                                    const toolTipHTML = `
+                                        <div class="tooltip w-full h-full">
+                                            <span class="tooltip-text">
+                                                <strong>${data.label} (${profile})</strong><br/>
+                                                Coverage: ${percent.toFixed(1)}%<br/>
+                                                (${total - missing}/${total} images)
+                                            </span>
+                                        </div>
+                                    `;
+                                    // Append tooltip wrapper if not set by innerHTML above (simple overwrite logic)
+                                    if (percent !== 0)
+                                        cell.innerHTML = toolTipHTML;
+                                    else
+                                        cell.querySelector("div").innerHTML +=
+                                            `<div class="tooltip w-full h-full absolute top-0 left-0"><span class="tooltip-text"><strong>${data.label} (${profile})</strong><br/>0% Coverage<br/>(0/${total} images)</span></div>`;
+                                }
+                            }
+                            row.appendChild(cell);
+                        }
+                        gridTable.appendChild(row);
+                    });
+
+                    container.appendChild(gridTable);
+                };
 
                 controls.addEventListener("change", () => {
                     saveFilters();
                     updateTable();
+                    // Clear timeline so it redraws on next tab switch or refresh if we want dynamic rows
+                    document.getElementById("timeline-container").innerHTML =
+                        "";
+                    if (
+                        !document
+                            .getElementById("view-timeline")
+                            .classList.contains("hidden")
+                    ) {
+                        renderTimeline();
+                    }
                 });
 
                 loadFilters();
