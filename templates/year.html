@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Year: {{ year_str }} - {{ journal_name }}</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-100 font-sans p-4 md:p-8">
+        <div class="container mx-auto">
+            <header
+                class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6"
+            >
+                <div>
+                    <nav class="text-sm text-gray-500 mb-2">
+                        <a
+                            href="{{ url_for('dashboard') }}"
+                            class="hover:underline"
+                            >Dashboard</a
+                        >
+                        &gt;
+                        <a
+                            href="{{ url_for('journal_detail', journal_name=journal_name) }}"
+                            class="hover:underline"
+                            >{{ journal_name }}</a
+                        >
+                        &gt; {{ year_str }}
+                    </nav>
+                    <h1 class="text-4xl font-bold text-gray-800">
+                        Year: {{ year_str }}
+                    </h1>
+                </div>
+                <nav class="space-x-4 mt-4 md:mt-0">
+                    <a
+                        href="{{ url_for('reports') }}"
+                        class="text-blue-600 hover:underline"
+                        >Reports</a
+                    >
+                    <a
+                        href="{{ url_for('index') }}"
+                        class="text-blue-600 hover:underline"
+                        >Re-Scan</a
+                    >
+                    <a
+                        href="{{ url_for('changelog') }}"
+                        class="text-blue-600 hover:underline"
+                        >View Changelog</a
+                    >
+                </nav>
+            </header>
+
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4">
+                    Missing Files
+                </h2>
+                {% if missing_files %}
+                <div class="space-y-6">
+                    {% for profile, files in missing_files|dictsort %}
+                    <div>
+                        <h3
+                            class="text-lg font-semibold text-gray-600 border-b pb-2 mb-2"
+                        >
+                            {{ profile.upper() }}
+                            <span class="text-sm font-normal"
+                                >({{ files|length }} missing)</span
+                            >
+                        </h3>
+                        <ul
+                            class="list-disc list-inside text-gray-500 text-sm space-y-1 font-mono"
+                        >
+                            {% for file in files %}
+                            <li>{{ file }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <p class="text-gray-500">
+                        No consistency issues found for this year.
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </body>
+</html>

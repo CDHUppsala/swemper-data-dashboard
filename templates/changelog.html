@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Changelog</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind Typography Plugin for nice markdown styling -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+</head>
+<body class="bg-gray-100 font-sans p-12">
+    <div class="container mx-auto bg-white rounded-lg shadow-lg p-8 px-40">
+        <header class="flex justify-between items-center mb-6 border-b pb-4">
+            <h1 class="text-4xl font-bold text-gray-800">Changelog</h1>
+            <nav class="space-x-4">
+                <a href="{{ url_for('dashboard') }}" class="text-blue-600 hover:underline">Dashboard</a>
+                <a href="{{ url_for('index') }}" class="text-blue-600 hover:underline">Home</a>
+            </nav>
+        </header>
+
+        <!-- Rendered Markdown Content -->
+        <!-- article class="prose lg:prose-xl max-w-none" -->
+	<!-- article class="prose prose-lg lg:prose-xl max-w-none">
+            {{ changelog_content|safe }}
+        </article -->
+	<!-- MODIFIED: Added prose-code:* utilities to style backticks -->
+        <article class="prose prose-lg lg:prose-xl max-w-none prose-code:font-mono prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-1 prose-code:rounded-md prose-code:text-lg prose-code:font-normal prose-code:before:content-none prose-code:after:content-none">
+            {{ changelog_content|safe }}
+        </article>
+
+    </div>
+</body>
+</html>
+

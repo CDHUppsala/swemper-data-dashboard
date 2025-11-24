@@ -1,0 +1,29 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+venv/
+.venv/
+env/
+
+# --- Flask ---
+instance/
+.webassets-cache
+
+# --- Project Specific ---
+# Ignore the temporary reports directory created by dataset_webapp.py
+tmp/
+
+# Ignore large scan state JSON files (unless you specifically want to track them)
+# It is generally bad practice to commit large datasets to Git.
+*.json
+
+# Exceptions: Keep specific config JSONs if you have them, but ignore scan dumps
+!config.json
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
+```

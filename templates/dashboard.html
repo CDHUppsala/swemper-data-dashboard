@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Dashboard - All Journals</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <style>
+            /* Activity Ring Styles */
+            .ring-container {
+                position: relative;
+                display: inline-block;
+            }
+            .ring-bg {
+                fill: none;
+                stroke: #e5e7eb; /* Fixed Light Gray for empty tracks */
+            }
+            .ring-progress {
+                fill: none;
+                stroke-linecap: round;
+                transform: rotate(-90deg);
+                transform-origin: 50% 50%;
+                transition: stroke-dashoffset 0.5s ease-in-out;
+            }
+            .ring-container:hover .ring-bg {
+                stroke: #d1d5db; /* Darker gray on hover */
+            }
+
+            /* Hover Legend Styles */
+            .ring-legend {
+                display: none;
+                position: absolute;
+                bottom: 100%; /* Position above the ring */
+                left: 50%;
+                transform: translateX(-50%);
+                background-color: white;
+                border: 1px solid #e5e7eb;
+                padding: 8px;
+                border-radius: 6px;
+                box-shadow:
+                    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                z-index: 50;
+                width: max-content;
+                min-width: 120px;
+                font-size: 0.75rem;
+                pointer-events: none; /* Prevent mouse flickering */
+                margin-bottom: 8px;
+            }
+            /* Tiny triangle pointer */
+            .ring-legend::after {
+                content: " ";
+                position: absolute;
+                top: 100%; /* At the bottom of the tooltip */
+                left: 50%;
+                margin-left: -5px;
+                border-width: 5px;
+                border-style: solid;
+                border-color: white transparent transparent transparent;
+            }
+            .ring-container:hover .ring-legend {
+                display: block;
+            }
+            .legend-item {
+                display: flex;
+                align-items: center;
+                margin-bottom: 4px;
+            }
+            .legend-item:last-child {
+                margin-bottom: 0;
+            }
+            .legend-color {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                margin-right: 8px;
+                flex-shrink: 0;
+            }
+            .legend-text {
+                color: #374151; /* gray-700 */
+                font-weight: 500;
+            }
+        </style>
+    </head>
+
+    <body class="bg-gray-100 font-sans p-4 md:p-8">
+        <div class="container mx-auto">
+            <header
+                class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6"
+            >
+                <div>
+                    <h1 class="text-4xl font-bold text-gray-800">
+                        All Journals Overview
+                    </h1>
+                    <p class="text-gray-500 mt-1">
+                        Scanned at: {{ data.metadata.scan_time }} UTC
+                    </p>
+                </div>
+                <nav class="space-x-4 mt-4 md:mt-0">
+                    <a
+                        href="{{ url_for('reports') }}"
+                        class="text-blue-600 hover:underline"
+                        >Reports</a
+                    >
+                    <span class="text-gray-400 mx-2">|</span>
+                    <a
+                        href="{{ url_for('index') }}"
+                        class="text-blue-600 hover:underline"
+                        >Re-Scan</a
+                    >
+                    <span class="text-gray-400 mx-2">|</span>
+                    <a
+                        href="{{ url_for('changelog') }}"
+                        class="text-blue-600 hover:underline"
+                        >View Changelog</a
+                    >
+                </nav>
+            </header>
+
+            <!-- Bar Chart -->
+            <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4">
+                    Total Images per Journal
+                </h2>
+                <div class="relative h-96">
+                    <canvas id="journalSizeChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <!-- Filter Controls -->
+                <div class="mb-4 p-4 border rounded-lg bg-gray-50">
+                    <label class="font-semibold text-gray-700 block mb-2"
+                        >Calculate Consistency For (Legend):</label
+                    >
+                    <div
+                        id="filter-controls"
+                        class="flex flex-wrap gap-x-6 gap-y-2"
+                    >
+                        {% for profile in filter_profiles %}
+                        <div class="flex items-center">
+                            <input
+                                type="checkbox"
+                                id="{{ profile }}"
+                                name="{{ profile }}"
+                                value="{{ profile }}"
+                                checked
+                                class="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            />
+                            <label
+                                for="{{ profile }}"
+                                class="text-gray-600 cursor-pointer flex items-center"
+                            >
+                                <!-- Color dot will be injected here by JS -->
+                                <span
+                                    class="color-dot w-3 h-3 rounded-full mr-2 inline-block bg-gray-400"
+                                    data-profile="{{ profile }}"
+                                ></span>
+                                {{ profile }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Journals Table -->
+                <div class="overflow-x-auto">
+                    <table
+                        id="journals-table"
+                        class="min-w-full divide-y divide-gray-200"
+                    >
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                    Journal Name
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                    Total Image Count
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                    Complete data/metadata
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                    Incomplete/Missing Data
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                    Total Missing*
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                    Consistency*
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                    Progress
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                    Details
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for name, journal in data.results|dictsort %}
+                            <tr
+                                class="journal-row"
+                                data-total-images="{{ journal.summary.total_images }}"
+                                {%
+                                for
+                                profile,
+                                count
+                                in
+                                journal.summary.profile_counts.items()
+                                if
+                                profile
+                                !="texts_group"
+                                %}
+                                data-missing-{{
+                                profile
+                                }}="{{ count }}"
+                                {%
+                                endfor
+                                %}
+                                data-missing-texts="{{ journal.summary.profile_counts.texts_group.missing_coverage }}"
+                            >
+                                <td
+                                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
+                                >
+                                    {{ name }}
+                                </td>
+                                <td
+                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                >
+                                    {{
+                                    "{:,}".format(journal.summary.total_images)
+                                    }}
+                                </td>
+
+                                <!-- Complete Data Column -->
+                                <td
+                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top"
+                                >
+                                    <div
+                                        class="flex flex-col gap-2 items-start"
+                                    >
+                                        {% set texts_group =
+                                        journal.summary.profile_counts.texts_group
+                                        %} {% if texts_group.missing_coverage ==
+                                        0 and journal.summary.total_images > 0
+                                        %}
+                                        <div>
+                                            <span
+                                                class="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"
+                                                >✅ Texts</span
+                                            >
+                                            <div
+                                                class="pl-4 mt-1 text-xs text-gray-600"
+                                            >
+                                                {% for edition, count in
+                                                texts_group.edition_counts|dictsort
+                                                %}
+                                                <p>
+                                                    &bull; {{ edition }}: {{
+                                                    "{:,}".format(count) }}
+                                                    present
+                                                </p>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        {% endif %} {% for profile, count in
+                                        journal.summary.profile_counts|dictsort
+                                        %} {% if profile != 'texts_group' and
+                                        count == 0 and
+                                        journal.summary.total_images > 0 %}
+                                        <span
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"
+                                            >✅ {{ profile }}: {{
+                                            "{:,}".format(journal.summary.total_images)
+                                            }}</span
+                                        >
+                                        {% endif %} {% endfor %}
+                                    </div>
+                                </td>
+
+                                <!-- Incomplete/Missing Data Column -->
+                                <td
+                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top"
+                                >
+                                    <div
+                                        class="flex flex-col gap-3 items-start"
+                                    >
+                                        {% set texts_group =
+                                        journal.summary.profile_counts.texts_group
+                                        %} {% if texts_group.missing_coverage >
+                                        0 %}
+                                        <div>
+                                            <span
+                                                class="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800"
+                                                >🟡 Texts: {{
+                                                "{:,}".format(texts_group.missing_coverage)
+                                                }} missing coverage</span
+                                            >
+                                            <div
+                                                class="pl-4 mt-1 text-xs text-gray-600"
+                                            >
+                                                {% for edition, count in
+                                                texts_group.edition_counts|dictsort
+                                                %}
+                                                <p>
+                                                    &bull; {{ edition }}: {{
+                                                    "{:,}".format(count) }}
+                                                    present
+                                                </p>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        {% endif %} {% for profile, count in
+                                        journal.summary.profile_counts|dictsort
+                                        if profile != 'texts_group' and count >
+                                        0 %}
+                                        <span
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800"
+                                            >🟡 {{ profile }}: {{
+                                            "{:,}".format(count) }} missing / {{
+                                            "{:,}".format(journal.summary.total_images
+                                            - count) }} present</span
+                                        >
+                                        {% endfor %}
+                                    </div>
+                                </td>
+
+                                <td
+                                    class="total-missing px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold align-top"
+                                ></td>
+                                <td
+                                    class="consistency-percent px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold align-top"
+                                ></td>
+                                <td
+                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top"
+                                >
+                                    <div
+                                        class="ring-container"
+                                        style="width: 120px; height: 120px"
+                                    ></div>
+                                </td>
+                                <td
+                                    class="px-6 py-4 whitespace-nowrap text-sm font-medium align-top"
+                                >
+                                    <a
+                                        href="{{ url_for('journal_detail', journal_name=name) }}"
+                                        class="text-blue-600 hover:text-blue-900"
+                                        >View Details</a
+                                    >
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-xs text-gray-400 mt-4">
+                    * Values are calculated based on the selected profiles.
+                </p>
+            </div>
+        </div>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const controls = document.getElementById("filter-controls");
+                const tableRows = document.querySelectorAll(".journal-row");
+                const storageKey = "dashboardProfileFilters";
+
+                // Color mapping for profiles
+                const PROFILE_COLORS = {
+                    Texts: "#10b981", // Green
+                    xml: "#3b82f6", // Blue
+                    altoxml: "#f59e0b", // Amber/Orange
+                    "metadata-v1": "#8b5cf6", // Purple
+                    "metadata-v2": "#ec4899", // Pink
+                    avif: "#14b8a6", // Teal
+                    default: "#6b7280", // Gray
+                };
+
+                // Apply colors to the legend dots
+                document.querySelectorAll(".color-dot").forEach((dot) => {
+                    const profile = dot.dataset.profile;
+                    const color =
+                        PROFILE_COLORS[profile] ||
+                        PROFILE_COLORS[profile.split("-")[0]] ||
+                        PROFILE_COLORS["default"];
+                    dot.style.backgroundColor = color;
+                });
+
+                // Helper to convert profile names like 'metadata-v2' to 'metadataV2'
+                function toCamelCase(str) {
+                    return str
+                        .toLowerCase()
+                        .replace(/([-_][a-z0-9])/g, (group) =>
+                            group
+                                .toUpperCase()
+                                .replace("-", "")
+                                .replace("_", ""),
+                        );
+                }
+
+                function getSelectedProfiles() {
+                    const selected = new Set();
+                    controls
+                        .querySelectorAll('input[type="checkbox"]:checked')
+                        .forEach((cb) => {
+                            selected.add(cb.value);
+                        });
+                    return selected;
+                }
+
+                function saveFilters() {
+                    const selected = Array.from(getSelectedProfiles());
+                    localStorage.setItem(storageKey, JSON.stringify(selected));
+                }
+
+                function loadFilters() {
+                    const saved = localStorage.getItem(storageKey);
+                    if (saved) {
+                        const selectedProfiles = new Set(JSON.parse(saved));
+                        controls
+                            .querySelectorAll('input[type="checkbox"]')
+                            .forEach((cb) => {
+                                cb.checked = selectedProfiles.has(cb.value);
+                            });
+                    }
+                }
+
+                function renderActivityRings(container, ringData) {
+                    container.innerHTML = "";
+                    const size = 120;
+                    const strokeWidth = 6;
+                    const gap = 3;
+                    const center = size / 2;
+
+                    // Create SVG element
+                    const svg = document.createElementNS(
+                        "http://www.w3.org/2000/svg",
+                        "svg",
+                    );
+                    svg.setAttribute("width", size);
+                    svg.setAttribute("height", size);
+                    svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+
+                    // Create Legend Container
+                    const legendDiv = document.createElement("div");
+                    legendDiv.className = "ring-legend";
+
+                    // Calculate max radius based on number of rings
+                    const maxRadius = size / 2 - strokeWidth / 2;
+
+                    ringData.forEach((ring, index) => {
+                        const radius = maxRadius - index * (strokeWidth + gap);
+                        if (radius <= 0) return;
+
+                        const circumference = 2 * Math.PI * radius;
+                        const offset =
+                            circumference -
+                            (ring.percent / 100) * circumference;
+                        const color =
+                            PROFILE_COLORS[ring.profile] ||
+                            PROFILE_COLORS[ring.profile.split("-")[0]] ||
+                            PROFILE_COLORS["default"];
+
+                        // Background Circle
+                        const bgCircle = document.createElementNS(
+                            "http://www.w3.org/2000/svg",
+                            "circle",
+                        );
+                        bgCircle.setAttribute("cx", center);
+                        bgCircle.setAttribute("cy", center);
+                        bgCircle.setAttribute("r", radius);
+                        bgCircle.setAttribute("stroke-width", strokeWidth);
+                        bgCircle.setAttribute("class", "ring-bg");
+                        svg.appendChild(bgCircle);
+
+                        // Progress Circle
+                        const progressCircle = document.createElementNS(
+                            "http://www.w3.org/2000/svg",
+                            "circle",
+                        );
+                        progressCircle.setAttribute("cx", center);
+                        progressCircle.setAttribute("cy", center);
+                        progressCircle.setAttribute("r", radius);
+                        progressCircle.setAttribute("stroke", color);
+                        progressCircle.setAttribute(
+                            "stroke-width",
+                            strokeWidth,
+                        );
+                        progressCircle.setAttribute(
+                            "stroke-dasharray",
+                            circumference,
+                        );
+                        progressCircle.setAttribute(
+                            "stroke-dashoffset",
+                            offset,
+                        );
+                        progressCircle.setAttribute("class", "ring-progress");
+
+                        svg.appendChild(progressCircle);
+
+                        // Add item to legend
+                        const legendItem = document.createElement("div");
+                        legendItem.className = "legend-item";
+                        legendItem.innerHTML = `
+                        <span class="legend-color" style="background-color: ${color}"></span>
+                        <span class="legend-text">${ring.profile}: ${ring.percent.toFixed(1)}%</span>
+                    `;
+                        legendDiv.appendChild(legendItem);
+                    });
+
+                    container.appendChild(svg);
+                    container.appendChild(legendDiv);
+                }
+
+                function updateTable() {
+                    const selectedProfiles = getSelectedProfiles();
+                    const activeProfileList = Array.from(
+                        controls.querySelectorAll('input[type="checkbox"]'),
+                    )
+                        .filter((cb) => cb.checked)
+                        .map((cb) => cb.value);
+
+                    tableRows.forEach((row) => {
+                        const totalImages =
+                            parseInt(row.dataset.totalImages, 10) || 0;
+                        let totalMissing = 0;
+                        const ringData = [];
+
+                        activeProfileList.forEach((profile) => {
+                            let missingCount = 0;
+                            if (profile === "Texts") {
+                                missingCount =
+                                    parseInt(row.dataset.missingTexts, 10) || 0;
+                            } else {
+                                const camelCaseKey = toCamelCase(
+                                    `missing-${profile}`,
+                                );
+                                missingCount =
+                                    parseInt(row.dataset[camelCaseKey], 10) ||
+                                    0;
+                            }
+                            totalMissing += missingCount;
+
+                            let percent = 0;
+                            if (totalImages > 0) {
+                                percent =
+                                    ((totalImages - missingCount) /
+                                        totalImages) *
+                                    100;
+                            } else if (
+                                totalImages === 0 &&
+                                missingCount === 0
+                            ) {
+                                percent = 100;
+                            }
+                            ringData.push({
+                                profile: profile,
+                                percent: Math.max(0, percent),
+                            });
+                        });
+
+                        const totalPossible =
+                            totalImages * activeProfileList.length;
+                        let overallConsistency = 100.0;
+                        if (totalPossible > 0) {
+                            overallConsistency = Math.max(
+                                0,
+                                ((totalPossible - totalMissing) /
+                                    totalPossible) *
+                                    100,
+                            );
+                        } else if (totalImages > 0) {
+                            overallConsistency = 0;
+                        }
+
+                        row.querySelector(".total-missing").textContent =
+                            totalMissing.toLocaleString();
+                        row.querySelector(".consistency-percent").textContent =
+                            `${overallConsistency.toFixed(2)}%`;
+
+                        const ringContainer =
+                            row.querySelector(".ring-container");
+                        if (ringContainer) {
+                            renderActivityRings(ringContainer, ringData);
+                        }
+                    });
+                }
+
+                // --- Bar Chart Logic ---
+                const chartCtx = document
+                    .getElementById("journalSizeChart")
+                    .getContext("2d");
+                const journalLabels = Array.from(tableRows).map(
+                    (row) => row.children[0].textContent,
+                );
+                const imageCounts = Array.from(tableRows).map((row) =>
+                    parseInt(row.dataset.totalImages, 10),
+                );
+
+                new Chart(chartCtx, {
+                    type: "bar",
+                    data: {
+                        labels: journalLabels,
+                        datasets: [
+                            {
+                                label: "Total Image Count",
+                                data: imageCounts,
+                                backgroundColor: "rgba(59, 130, 246, 0.5)",
+                                borderColor: "rgba(59, 130, 246, 1)",
+                                borderWidth: 1,
+                            },
+                        ],
+                    },
+                    options: {
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                type: "logarithmic",
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function (value, index, values) {
+                                        if (value >= 1000000)
+                                            return value / 1000000 + "M";
+                                        if (value >= 1000)
+                                            return value / 1000 + "K";
+                                        return value;
+                                    },
+                                },
+                            },
+                            x: {
+                                ticks: {
+                                    autoSkip: false,
+                                    maxRotation: 90,
+                                    minRotation: 45,
+                                },
+                            },
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        return `Images: ${context.parsed.y.toLocaleString()}`;
+                                    },
+                                },
+                            },
+                        },
+                    },
+                });
+
+                controls.addEventListener("change", () => {
+                    saveFilters();
+                    updateTable();
+                });
+
+                loadFilters();
+                updateTable();
+            });
+        </script>
+    </body>
+</html>
