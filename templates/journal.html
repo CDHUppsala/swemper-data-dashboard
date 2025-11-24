@@ -338,9 +338,10 @@
                                     <td
                                         class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top"
                                     >
+                                        <!-- UPDATED: Increased size to 120px to match dashboard -->
                                         <div
                                             class="ring-container"
-                                            style="width: 80px; height: 80px"
+                                            style="width: 120px; height: 120px"
                                         ></div>
                                     </td>
                                     <td
@@ -448,7 +449,7 @@
                     altoxml: "#f59e0b", // Amber
                     "metadata-v1": "#8b5cf6", // Purple
                     "metadata-v2": "#ec4899", // Pink
-                    avif: "#f97316", // Orange (Was Teal)
+                    avif: "#f9ec16", // Yellow (Adjusted for readability)
                     default: "#6b7280", // Gray
                 };
 
@@ -495,10 +496,11 @@
                     }
                 }
 
-                // --- RING LOGIC (Condensed for brevity) ---
+                // --- RING LOGIC ---
                 function renderActivityRings(container, ringData) {
                     container.innerHTML = "";
-                    const size = 80;
+                    // UPDATED: Changed size from 80 to 120
+                    const size = 120;
                     const strokeWidth = 5;
                     const gap = 2;
                     const center = size / 2;
