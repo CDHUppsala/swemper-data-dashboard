@@ -148,29 +148,14 @@
                 color: #e5e7eb;
             }
 
-            /* --- Timeline Styles --- */
-            .timeline-cell {
-                transition: transform 0.1s;
-            }
-            .timeline-cell:hover {
-                transform: scale(1.1);
-                z-index: 20;
-                box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
-                border-color: #3b82f6;
-            }
-            .header-cell-selected {
-                background-color: #bfdbfe !important;
-                border-bottom: 2px solid #2563eb !important;
-                color: #1e3a8a !important;
-            }
-            .dark .header-cell-selected {
-                background-color: #1e3a8a !important;
-                border-bottom: 2px solid #60a5fa !important;
-                color: #bfdbfe !important;
-            }
-            .header-cell {
-                cursor: col-resize;
-                user-select: none;
+            /* Canvas Tooltip */
+            #canvas-tooltip {
+                pointer-events: none;
+                z-index: 50;
+                font-size: 0.75rem;
+                box-shadow:
+                    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                    0 2px 4px -1px rgba(0, 0, 0, 0.06);
             }
         </style>
     </head>
@@ -453,24 +438,6 @@
                                 <tr
                                     class="journal-row dark:hover:bg-gray-750"
                                     data-journal-name="{{ name }}"
-                                    data-total-images="{{ journal.summary.total_images }}"
-                                    {%
-                                    for
-                                    profile,
-                                    count
-                                    in
-                                    journal.summary.profile_counts.items()
-                                    if
-                                    profile
-                                    !="texts_group"
-                                    %}
-                                    data-missing-{{
-                                    profile
-                                    }}="{{ count }}"
-                                    {%
-                                    endfor
-                                    %}
-                                    data-missing-texts="{{ journal.summary.profile_counts.texts_group.missing_coverage }}"
                                 >
                                     <td
                                         class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white"
@@ -580,9 +547,9 @@
                     </div>
                 </div>
 
-                <!-- VIEW 2: TIMELINE -->
+                <!-- VIEW 2: CANVAS TIMELINE (Hybrid Layout) -->
                 <div id="view-timeline" class="hidden">
-                    <div class="mb-6">
+                    <div class="mb-4">
                         <h3
                             class="text-xl font-bold text-gray-700 mb-2 dark:text-gray-200"
                         >
@@ -594,11 +561,11 @@
                             Drag across the years in the header row to calculate
                             totals.
                         </p>
+                        <!-- Color Legend -->
                         <div
                             class="flex flex-wrap items-center gap-4 text-xs text-gray-600 mb-4 dark:text-gray-400"
                         >
                             <div class="flex items-center">
-                                <!-- UPDATED: Legend for Missing Year - Light (Gray 200) / Dark (Gray 800) -->
                                 <span
                                     class="w-3 h-3 border mr-1 bg-gray-200 border-gray-400 dark:bg-gray-800 dark:border-gray-600"
                                 ></span>
@@ -606,9 +573,9 @@
                             </div>
                             <div class="flex items-center">
                                 <span
-                                    class="w-3 h-3 bg-gray-600 mr-1 dark:bg-gray-500"
+                                    class="w-3 h-3 bg-gray-300 mr-1 dark:bg-gray-700"
                                 ></span>
-                                0% Data
+                                0% Data (Empty)
                             </div>
                             <div class="flex items-center">
                                 <span
@@ -618,6 +585,7 @@
                             </div>
                         </div>
 
+                        <!-- Selection Stats Panel -->
                         <div
                             id="selection-stats"
                             class="hidden p-4 bg-blue-50 border border-blue-200 rounded-lg flex justify-between items-center shadow-sm dark:bg-gray-700 dark:border-gray-600"
@@ -653,11 +621,43 @@
                             </button>
                         </div>
                     </div>
-                    <!-- UPDATED: Timeline container dark mode bg-gray-900 -->
+
+                    <!-- Canvas Wrapper: Sidebar + Scrollable Canvas -->
                     <div
-                        id="timeline-container"
-                        class="overflow-x-auto border rounded-lg p-4 bg-gray-50 select-none dark:bg-gray-900 dark:border-gray-600"
-                    ></div>
+                        id="timeline-wrapper"
+                        class="flex border rounded-lg bg-gray-50 dark:bg-gray-900 dark:border-gray-600 h-[600px] relative"
+                    >
+                        <!-- 1. Sticky Sidebar for Journal Names -->
+                        <div
+                            id="timeline-sidebar"
+                            class="w-40 flex-shrink-0 overflow-hidden border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-10"
+                        >
+                            <!-- Header Spacer -->
+                            <div
+                                class="h-8 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900"
+                            ></div>
+                            <!-- Journal Names Container -->
+                            <div
+                                id="journal-names-list"
+                                class="flex flex-col"
+                            ></div>
+                        </div>
+
+                        <!-- 2. Scrollable Canvas Container -->
+                        <div
+                            id="timeline-scroll-area"
+                            class="flex-1 overflow-auto relative cursor-crosshair"
+                        >
+                            <!-- The Canvas -->
+                            <canvas id="timeline-canvas"></canvas>
+
+                            <!-- Floating Tooltip -->
+                            <div
+                                id="canvas-tooltip"
+                                class="absolute hidden z-50 p-2 bg-gray-800 text-white text-xs rounded shadow-lg max-w-xs pointer-events-none"
+                            ></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -674,14 +674,9 @@
                 }
                 updateIcons();
 
-                // Force redraw of timeline to pick up new colors
-                const timelineContainer =
-                    document.getElementById("timeline-container");
-                if (timelineContainer) {
-                    timelineContainer.innerHTML = ""; // Clear existing
-                    const evt = new Event("triggerTimelineRender");
-                    document.dispatchEvent(evt);
-                }
+                // Redraw canvas with new colors
+                const evt = new Event("triggerTimelineRender");
+                document.dispatchEvent(evt);
             }
 
             function updateIcons() {
@@ -711,74 +706,20 @@
                 document.documentElement.classList.remove("dark");
             }
 
-            // --- GLOBAL FUNCTIONS ---
-            function switchTab(tabName) {
-                const tableBtn = document.getElementById("tab-btn-table");
-                const timelineBtn = document.getElementById("tab-btn-timeline");
-                const tableView = document.getElementById("view-table");
-                const timelineView = document.getElementById("view-timeline");
-
-                const activeClasses = [
-                    "text-blue-600",
-                    "border-blue-600",
-                    "active",
-                    "dark:text-blue-400",
-                    "dark:border-blue-400",
-                ];
-                const inactiveClasses = [
-                    "text-gray-500",
-                    "border-transparent",
-                    "hover:text-gray-600",
-                    "hover:border-gray-300",
-                    "dark:text-gray-400",
-                    "dark:hover:text-gray-300",
-                ];
-
-                if (tabName === "table") {
-                    tableView.classList.remove("hidden");
-                    timelineView.classList.add("hidden");
-
-                    // Apply Active to Table Btn
-                    tableBtn.classList.add(...activeClasses);
-                    tableBtn.classList.remove(...inactiveClasses);
-
-                    // Apply Inactive to Timeline Btn
-                    timelineBtn.classList.remove(...activeClasses);
-                    timelineBtn.classList.add(...inactiveClasses);
-                } else {
-                    tableView.classList.add("hidden");
-                    timelineView.classList.remove("hidden");
-
-                    // Apply Inactive to Table Btn
-                    tableBtn.classList.remove(...activeClasses);
-                    tableBtn.classList.add(...inactiveClasses);
-
-                    // Apply Active to Timeline Btn
-                    timelineBtn.classList.add(...activeClasses);
-                    timelineBtn.classList.remove(...inactiveClasses);
-
-                    const evt = new Event("triggerTimelineRender");
-                    document.dispatchEvent(evt);
-                }
-            }
-
-            // Placeholders
-            window.toggleAllJournals = function () {};
-            window.clearTimelineSelection = function () {};
-
+            // --- CANVAS & DATA LOGIC ---
             document.addEventListener("DOMContentLoaded", function () {
-                updateIcons(); // Set initial icon state
+                updateIcons();
 
                 const controls = document.getElementById("filter-controls");
                 const journalControls =
                     document.getElementById("journal-controls");
                 const tableRows = document.querySelectorAll(".journal-row");
+                const storageKey = "dashboardProfileFilters";
                 const rangeInput = document.getElementById(
                     "selection-range-input",
                 );
-                const storageKey = "dashboardProfileFilters";
 
-                // Dataset
+                // Dataset Loading
                 let DATASET_RESULTS = {};
                 try {
                     const scriptTag = document.getElementById("full-dataset");
@@ -788,7 +729,6 @@
                     console.error("JSON Parse Error", e);
                 }
 
-                // Colors
                 const PROFILE_COLORS = {
                     Texts: "#10b981",
                     xml: "#3b82f6",
@@ -825,7 +765,7 @@
                         controls
                             .querySelectorAll('input[type="checkbox"]:checked')
                             .forEach((cb) => selected.add(cb.value));
-                    return selected;
+                    return Array.from(selected);
                 }
 
                 function getSelectedJournals() {
@@ -838,7 +778,7 @@
                 }
 
                 function saveFilters() {
-                    const selected = Array.from(getSelectedProfiles());
+                    const selected = getSelectedProfiles();
                     localStorage.setItem(storageKey, JSON.stringify(selected));
                 }
 
@@ -854,41 +794,648 @@
                     }
                 }
 
-                // Globals overrides
+                // --- SHARED CALCULATION LOGIC (Mitigate Logic Drift) ---
+                function calculateConsistency(journalData, activeProfiles) {
+                    // journalData = { summary: { total_images: X, profile_counts: {...} } }
+                    // activeProfiles = ['Texts', 'xml', 'metadata-v1']
+
+                    const totalImages = journalData.summary.total_images || 0;
+                    let totalMissing = 0;
+                    const ringData = [];
+
+                    activeProfiles.forEach((profile) => {
+                        let missingCount = 0;
+                        if (profile === "Texts") {
+                            missingCount =
+                                journalData.summary.profile_counts.texts_group
+                                    .missing_coverage || 0;
+                        } else {
+                            missingCount =
+                                journalData.summary.profile_counts[profile] ||
+                                0;
+                        }
+                        totalMissing += missingCount;
+
+                        let percent = 0;
+                        if (totalImages > 0) {
+                            percent =
+                                ((totalImages - missingCount) / totalImages) *
+                                100;
+                        } else if (totalImages === 0 && missingCount === 0) {
+                            percent = 100;
+                        }
+                        ringData.push({
+                            profile: profile,
+                            percent: Math.max(0, percent),
+                        });
+                    });
+
+                    const totalPossible = totalImages * activeProfiles.length;
+                    let overallConsistency = 100.0;
+                    if (totalPossible > 0) {
+                        overallConsistency = Math.max(
+                            0,
+                            ((totalPossible - totalMissing) / totalPossible) *
+                                100,
+                        );
+                    } else if (totalImages > 0) {
+                        overallConsistency = 0;
+                    }
+
+                    return {
+                        totalMissing,
+                        overallConsistency,
+                        ringData,
+                    };
+                }
+
+                // --- TABLE UPDATE LOGIC ---
+                function updateTable() {
+                    try {
+                        const activeProfiles = getSelectedProfiles();
+                        const selectedJournals = getSelectedJournals();
+
+                        tableRows.forEach((row) => {
+                            const journalName = row.dataset.journalName;
+
+                            // Filter Row Visibility
+                            if (selectedJournals.has(journalName)) {
+                                row.style.display = "";
+                            } else {
+                                row.style.display = "none";
+                                return;
+                            }
+
+                            // Use SHARED LOGIC for math
+                            const journalData = DATASET_RESULTS[journalName];
+                            if (!journalData) return;
+
+                            const metrics = calculateConsistency(
+                                journalData,
+                                activeProfiles,
+                            );
+
+                            // Update DOM
+                            const missingEl =
+                                row.querySelector(".total-missing");
+                            if (missingEl)
+                                missingEl.textContent =
+                                    metrics.totalMissing.toLocaleString();
+
+                            const consistEl = row.querySelector(
+                                ".consistency-percent",
+                            );
+                            if (consistEl)
+                                consistEl.textContent = `${metrics.overallConsistency.toFixed(2)}%`;
+
+                            const ringContainer =
+                                row.querySelector(".ring-container");
+                            if (ringContainer) {
+                                renderActivityRings(
+                                    ringContainer,
+                                    metrics.ringData,
+                                );
+                            }
+                        });
+                    } catch (e) {
+                        console.error("Table Update Error", e);
+                    }
+                }
+
+                // --- CANVAS TIMELINE LOGIC ---
+                const canvas = document.getElementById("timeline-canvas");
+                const ctx = canvas ? canvas.getContext("2d") : null;
+                const scrollArea = document.getElementById(
+                    "timeline-scroll-area",
+                );
+                const sidebar = document.getElementById("timeline-sidebar");
+                const sidebarList =
+                    document.getElementById("journal-names-list");
+                const tooltip = document.getElementById("canvas-tooltip");
+
+                let canvasState = {
+                    cellWidth: 24,
+                    cellHeight: 32, // h-8
+                    headerHeight: 32, // h-8
+                    journals: [],
+                    minYear: 0,
+                    maxYear: 0,
+                    isDragging: false,
+                    selectionStart: null,
+                    selectionEnd: null,
+                };
+
+                // Calculate Date Range
+                let minYear = 3000;
+                let maxYear = 1000;
+                try {
+                    Object.keys(DATASET_RESULTS).forEach((name) => {
+                        Object.keys(DATASET_RESULTS[name].years).forEach(
+                            (yStr) => {
+                                const y = parseInt(yStr.split("-")[0]);
+                                if (y < minYear) minYear = y;
+                                if (y > maxYear) maxYear = y;
+                            },
+                        );
+                    });
+                    if (minYear > maxYear) {
+                        minYear = 1900;
+                        maxYear = 2000;
+                    }
+                    canvasState.minYear = minYear;
+                    canvasState.maxYear = maxYear;
+                } catch (e) {}
+
+                function renderTimeline() {
+                    if (!ctx) return;
+
+                    // 1. Prepare Data
+                    const selectedJournalSet = getSelectedJournals();
+                    const visibleJournals =
+                        Array.from(selectedJournalSet).sort();
+                    canvasState.journals = visibleJournals;
+
+                    // 2. Populate Sidebar (DOM for text searchability/crispness)
+                    sidebarList.innerHTML = "";
+                    visibleJournals.forEach((name) => {
+                        const div = document.createElement("div");
+                        div.className =
+                            "h-8 flex items-center justify-end pr-2 text-xs font-bold text-gray-700 dark:text-gray-300 border-b border-gray-100 dark:border-gray-600 truncate";
+                        div.textContent = name;
+                        div.title = name;
+                        sidebarList.appendChild(div);
+                    });
+
+                    // 3. Resize Canvas
+                    const totalYears =
+                        canvasState.maxYear - canvasState.minYear + 1;
+                    const totalWidth = totalYears * canvasState.cellWidth;
+                    const totalHeight =
+                        canvasState.headerHeight +
+                        visibleJournals.length * canvasState.cellHeight;
+
+                    // High DPI scaling
+                    const dpr = window.devicePixelRatio || 1;
+                    canvas.style.width = `${totalWidth}px`;
+                    canvas.style.height = `${totalHeight}px`;
+                    canvas.width = totalWidth * dpr;
+                    canvas.height = totalHeight * dpr;
+                    ctx.scale(dpr, dpr);
+
+                    drawCanvas();
+                }
+
+                function drawCanvas() {
+                    if (!ctx) return;
+                    const width =
+                        (canvasState.maxYear - canvasState.minYear + 1) *
+                        canvasState.cellWidth;
+                    const height =
+                        canvasState.headerHeight +
+                        canvasState.journals.length * canvasState.cellHeight;
+                    const isDark =
+                        document.documentElement.classList.contains("dark");
+                    const activeProfiles = getSelectedProfiles();
+
+                    // Colors
+                    const COLORS = {
+                        bg: isDark ? "#111827" : "#f9fafb", // Gray 900 / Gray 50
+                        headerBg: isDark ? "#1f2937" : "#f3f4f6", // Gray 800 / Gray 100
+                        border: isDark ? "#4b5563" : "#e5e7eb",
+                        text: isDark ? "#9ca3af" : "#6b7280",
+                        selection: isDark
+                            ? "rgba(59, 130, 246, 0.3)"
+                            : "rgba(191, 219, 254, 0.5)",
+                        missingYear: isDark ? "#1f2937" : "#e5e7eb", // Gray 800 / Gray 200
+                        emptyData: isDark ? "#374151" : "#d1d5db", // Gray 700 / Gray 300
+                    };
+
+                    ctx.clearRect(0, 0, width, height);
+
+                    // --- DRAW GRID & DATA ---
+                    canvasState.journals.forEach((journalName, rowIndex) => {
+                        const y =
+                            canvasState.headerHeight +
+                            rowIndex * canvasState.cellHeight;
+                        const journalData = DATASET_RESULTS[journalName];
+
+                        // Bottom border for row
+                        ctx.fillStyle = COLORS.border;
+                        ctx.fillRect(
+                            0,
+                            y + canvasState.cellHeight - 1,
+                            width,
+                            1,
+                        );
+
+                        for (
+                            let year = canvasState.minYear;
+                            year <= canvasState.maxYear;
+                            year++
+                        ) {
+                            const x =
+                                (year - canvasState.minYear) *
+                                canvasState.cellWidth;
+                            const yearKey = String(year);
+                            const yearData = journalData.years[yearKey];
+
+                            // Background Cell
+                            if (!yearData) {
+                                // Missing Year
+                                ctx.fillStyle = COLORS.missingYear;
+                                ctx.fillRect(
+                                    x,
+                                    y,
+                                    canvasState.cellWidth - 1,
+                                    canvasState.cellHeight - 1,
+                                );
+                            } else if (yearData.summary.images === 0) {
+                                // Empty Data
+                                ctx.fillStyle = COLORS.emptyData;
+                                ctx.fillRect(
+                                    x,
+                                    y,
+                                    canvasState.cellWidth - 1,
+                                    canvasState.cellHeight - 1,
+                                );
+                            } else {
+                                // Draw Stripes
+                                const stripeW =
+                                    canvasState.cellWidth /
+                                    activeProfiles.length;
+
+                                activeProfiles.forEach((profile, pIndex) => {
+                                    let missing = 0;
+                                    if (profile === "Texts") {
+                                        missing =
+                                            yearData.summary.profile_counts
+                                                .texts_group.missing_coverage ||
+                                            0;
+                                    } else {
+                                        missing =
+                                            yearData.summary.profile_counts[
+                                                profile
+                                            ] || 0;
+                                    }
+                                    const total = yearData.summary.images;
+                                    let percent = 0;
+                                    if (total > 0)
+                                        percent = (total - missing) / total;
+
+                                    if (percent === 0) {
+                                        ctx.fillStyle = "#4b5563"; // Dark gray for 0%
+                                    } else {
+                                        const baseColor =
+                                            PROFILE_COLORS[profile] ||
+                                            PROFILE_COLORS["default"];
+                                        ctx.fillStyle = baseColor;
+                                        ctx.globalAlpha = Math.max(
+                                            0.3,
+                                            percent,
+                                        );
+                                    }
+
+                                    ctx.fillRect(
+                                        x + pIndex * stripeW,
+                                        y,
+                                        stripeW,
+                                        canvasState.cellHeight - 1,
+                                    );
+                                    ctx.globalAlpha = 1.0;
+                                });
+                            }
+                        }
+                    });
+
+                    // --- DRAW HEADER ---
+                    ctx.fillStyle = COLORS.headerBg;
+                    ctx.fillRect(0, 0, width, canvasState.headerHeight);
+                    // Header bottom border
+                    ctx.fillStyle = COLORS.border;
+                    ctx.fillRect(0, canvasState.headerHeight - 1, width, 1);
+
+                    ctx.font = "9px sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+
+                    for (
+                        let year = canvasState.minYear;
+                        year <= canvasState.maxYear;
+                        year++
+                    ) {
+                        const x =
+                            (year - canvasState.minYear) *
+                            canvasState.cellWidth;
+
+                        // Selection Highlight
+                        if (
+                            canvasState.selectionStart !== null &&
+                            canvasState.selectionEnd !== null
+                        ) {
+                            const start = Math.min(
+                                canvasState.selectionStart,
+                                canvasState.selectionEnd,
+                            );
+                            const end = Math.max(
+                                canvasState.selectionStart,
+                                canvasState.selectionEnd,
+                            );
+                            if (year >= start && year <= end) {
+                                ctx.fillStyle = COLORS.selection;
+                                ctx.fillRect(
+                                    x,
+                                    0,
+                                    canvasState.cellWidth,
+                                    height, // Highlight full column
+                                );
+                            }
+                        }
+
+                        // Draw Text every 10 years or edges
+                        if (
+                            year % 10 === 0 ||
+                            year === canvasState.minYear ||
+                            year === canvasState.maxYear
+                        ) {
+                            ctx.fillStyle = COLORS.text;
+                            ctx.fillText(
+                                year,
+                                x + canvasState.cellWidth / 2,
+                                canvasState.headerHeight / 2,
+                            );
+                            // Tick mark
+                            ctx.fillStyle = "#ccc";
+                            ctx.fillRect(x, 0, 1, canvasState.headerHeight);
+                        }
+                    }
+                }
+
+                // --- CANVAS INTERACTIONS ---
+                if (canvas) {
+                    // Sync Scroll
+                    scrollArea.addEventListener("scroll", () => {
+                        sidebar.scrollTop = scrollArea.scrollTop;
+                    });
+
+                    // Mouse Move (Hover + Drag)
+                    canvas.addEventListener("mousemove", (e) => {
+                        const rect = canvas.getBoundingClientRect();
+                        const x = e.clientX - rect.left; // x relative to canvas
+                        const y = e.clientY - rect.top; // y relative to canvas
+
+                        const yearIndex = Math.floor(x / canvasState.cellWidth);
+                        const year = canvasState.minYear + yearIndex;
+                        const rowIndex = Math.floor(
+                            (y - canvasState.headerHeight) /
+                                canvasState.cellHeight,
+                        );
+
+                        // Dragging logic
+                        if (canvasState.isDragging) {
+                            if (
+                                year >= canvasState.minYear &&
+                                year <= canvasState.maxYear
+                            ) {
+                                canvasState.selectionEnd = year;
+                                drawCanvas(); // Redraw selection highlight
+                                updateSelectionStats();
+                            }
+                            return;
+                        }
+
+                        // Tooltip logic
+                        if (
+                            y > canvasState.headerHeight &&
+                            rowIndex >= 0 &&
+                            rowIndex < canvasState.journals.length
+                        ) {
+                            const journalName = canvasState.journals[rowIndex];
+                            const journalData = DATASET_RESULTS[journalName];
+                            const yearKey = String(year);
+                            const yearData = journalData.years[yearKey];
+
+                            // Show Tooltip
+                            tooltip.classList.remove("hidden");
+                            // Fixed: use x/y (relative to canvas content) instead of e.clientX/Y (viewport)
+                            tooltip.style.left = `${x + 15}px`;
+                            tooltip.style.top = `${y + 15}px`;
+
+                            if (!yearData) {
+                                tooltip.innerHTML = `<strong>${journalName} (${year})</strong><br/>Missing Year`;
+                            } else if (yearData.summary.images === 0) {
+                                tooltip.innerHTML = `<strong>${journalName} (${year})</strong><br/>0 Images`;
+                            } else {
+                                const activeProfiles = getSelectedProfiles();
+                                let content = `<strong>${journalName} (${year})</strong><br/><hr class="my-1 border-gray-600"/>`;
+                                activeProfiles.forEach((p) => {
+                                    let missing = 0;
+                                    if (p === "Texts") {
+                                        missing =
+                                            yearData.summary.profile_counts
+                                                .texts_group.missing_coverage ||
+                                            0;
+                                    } else {
+                                        missing =
+                                            yearData.summary.profile_counts[
+                                                p
+                                            ] || 0;
+                                    }
+                                    const total = yearData.summary.images;
+                                    const percent =
+                                        ((total - missing) / total) * 100;
+                                    content += `<div class="flex justify-between items-center text-[10px] mt-1 gap-2"><span>${p}:</span> <span>${percent.toFixed(0)}%</span></div>`;
+                                });
+                                tooltip.innerHTML = content;
+                            }
+                        } else {
+                            tooltip.classList.add("hidden");
+                        }
+                    });
+
+                    // Mouse Down (Start Drag)
+                    canvas.addEventListener("mousedown", (e) => {
+                        const rect = canvas.getBoundingClientRect();
+                        const y = e.clientY - rect.top;
+                        const x = e.clientX - rect.left;
+
+                        // Only allow drag if clicking header
+                        if (y <= canvasState.headerHeight) {
+                            canvasState.isDragging = true;
+                            const yearIndex = Math.floor(
+                                x / canvasState.cellWidth,
+                            );
+                            const year = canvasState.minYear + yearIndex;
+                            canvasState.selectionStart = year;
+                            canvasState.selectionEnd = year;
+                            drawCanvas();
+                        }
+                    });
+
+                    // Mouse Up (End Drag)
+                    document.addEventListener("mouseup", () => {
+                        if (canvasState.isDragging) {
+                            canvasState.isDragging = false;
+                            updateSelectionStats();
+                        }
+                    });
+
+                    // Mouse Leave
+                    canvas.addEventListener("mouseleave", () => {
+                        tooltip.classList.add("hidden");
+                    });
+                }
+
+                function updateSelectionStats() {
+                    const statsPanel =
+                        document.getElementById("selection-stats");
+                    if (
+                        canvasState.selectionStart === null ||
+                        canvasState.selectionEnd === null
+                    ) {
+                        statsPanel.classList.add("hidden");
+                        return;
+                    }
+
+                    statsPanel.classList.remove("hidden");
+                    const start = Math.min(
+                        canvasState.selectionStart,
+                        canvasState.selectionEnd,
+                    );
+                    const end = Math.max(
+                        canvasState.selectionStart,
+                        canvasState.selectionEnd,
+                    );
+
+                    if (rangeInput && document.activeElement !== rangeInput)
+                        rangeInput.value = `${start} - ${end}`;
+
+                    let totalImages = 0;
+                    const selectedJournals = getSelectedJournals();
+
+                    selectedJournals.forEach((name) => {
+                        if (!DATASET_RESULTS[name]) return;
+                        const yearsData = DATASET_RESULTS[name].years;
+                        for (let y = start; y <= end; y++) {
+                            const yearKey = String(y);
+                            if (yearsData[yearKey])
+                                totalImages +=
+                                    yearsData[yearKey].summary.images;
+                        }
+                    });
+
+                    document.getElementById(
+                        "selection-total-count",
+                    ).textContent = totalImages.toLocaleString();
+                }
+
+                if (rangeInput) {
+                    rangeInput.addEventListener("change", function () {
+                        const val = this.value;
+                        const matchRange = val.match(
+                            /(\d{4})\s*[-–]\s*(\d{4})/,
+                        );
+                        const matchSingle = val.match(/^(\d{4})$/);
+                        let s, e;
+                        if (matchRange) {
+                            s = parseInt(matchRange[1]);
+                            e = parseInt(matchRange[2]);
+                        } else if (matchSingle) {
+                            s = parseInt(matchSingle[1]);
+                            e = s;
+                        } else return;
+                        if (s < canvasState.minYear) s = canvasState.minYear;
+                        if (e > canvasState.maxYear) e = canvasState.maxYear;
+                        canvasState.selectionStart = s;
+                        canvasState.selectionEnd = e;
+                        this.blur();
+                        drawCanvas();
+                        updateSelectionStats();
+                    });
+                }
+
+                window.clearTimelineSelection = function () {
+                    canvasState.selectionStart = null;
+                    canvasState.selectionEnd = null;
+                    canvasState.isDragging = false;
+                    document
+                        .getElementById("selection-stats")
+                        .classList.add("hidden");
+                    drawCanvas();
+                };
+
+                // --- GLOBAL FUNCTIONS & LISTENERS ---
+                window.switchTab = function (tabName) {
+                    const tableBtn = document.getElementById("tab-btn-table");
+                    const timelineBtn =
+                        document.getElementById("tab-btn-timeline");
+                    const tableView = document.getElementById("view-table");
+                    const timelineView =
+                        document.getElementById("view-timeline");
+
+                    const activeClasses = [
+                        "text-blue-600",
+                        "border-blue-600",
+                        "active",
+                        "dark:text-blue-400",
+                        "dark:border-blue-400",
+                    ];
+                    const inactiveClasses = [
+                        "text-gray-500",
+                        "border-transparent",
+                        "hover:text-gray-600",
+                        "hover:border-gray-300",
+                        "dark:text-gray-400",
+                        "dark:hover:text-gray-300",
+                    ];
+
+                    if (tabName === "table") {
+                        tableView.classList.remove("hidden");
+                        timelineView.classList.add("hidden");
+                        tableBtn.classList.add(...activeClasses);
+                        tableBtn.classList.remove(...inactiveClasses);
+                        timelineBtn.classList.remove(...activeClasses);
+                        timelineBtn.classList.add(...inactiveClasses);
+                    } else {
+                        tableView.classList.add("hidden");
+                        timelineView.classList.remove("hidden");
+                        tableBtn.classList.remove(...activeClasses);
+                        tableBtn.classList.add(...inactiveClasses);
+                        timelineBtn.classList.add(...activeClasses);
+                        timelineBtn.classList.remove(...inactiveClasses);
+                        // Trigger render because canvas needs visibility to size correctly
+                        renderTimeline();
+                    }
+                };
+
                 window.toggleAllJournals = function (checked) {
                     if (journalControls) {
                         journalControls
                             .querySelectorAll('input[type="checkbox"]')
                             .forEach((cb) => (cb.checked = checked));
-                        // IMPORTANT: Call updateTable directly so it works without tab switching
                         updateTable();
-                        const timelineContainer =
-                            document.getElementById("timeline-container");
-                        if (timelineContainer) timelineContainer.innerHTML = "";
                         if (
                             !document
                                 .getElementById("view-timeline")
                                 .classList.contains("hidden")
-                        )
+                        ) {
                             renderTimeline();
-                        updateSelectionStats();
+                            // Fix: Update stats when bulk toggling
+                            updateSelectionStats();
+                        }
                     }
                 };
 
-                window.clearTimelineSelection = function () {
-                    selectionStart = null;
-                    selectionEnd = null;
-                    document
-                        .getElementById("selection-stats")
-                        .classList.add("hidden");
-                    document
-                        .querySelectorAll(".header-cell")
-                        .forEach((h) =>
-                            h.classList.remove("header-cell-selected"),
-                        );
-                };
+                document.addEventListener("triggerTimelineRender", function () {
+                    if (
+                        !document
+                            .getElementById("view-timeline")
+                            .classList.contains("hidden")
+                    ) {
+                        drawCanvas();
+                    }
+                });
 
-                // RINGS
+                // Initialize Activity Rings (Shared SVG Logic)
                 function renderActivityRings(container, ringData) {
                     container.innerHTML = "";
                     const size = 120;
@@ -917,7 +1464,7 @@
                             PROFILE_COLORS[ring.profile.split("-")[0]] ||
                             PROFILE_COLORS["default"];
 
-                        // Bg
+                        // Background
                         const bgCircle = document.createElementNS(
                             "http://www.w3.org/2000/svg",
                             "circle",
@@ -927,14 +1474,7 @@
                         bgCircle.setAttribute("r", radius);
                         bgCircle.setAttribute("stroke-width", strokeWidth);
                         bgCircle.setAttribute("class", "ring-bg");
-                        // Inline styles for robustness
                         bgCircle.style.fill = "none";
-                        // We let CSS handle stroke color for dark/light mode support, or set a default here
-                        // but dark mode needs class-based override.
-                        // Let's rely on CSS class .ring-bg for color.
-                        // However, to ensure visibility if CSS fails, we can set a default stroke
-                        // BUT that overrides CSS dark mode.
-                        // Solution: Don't set inline stroke for BG circle, rely on class.
                         svg.appendChild(bgCircle);
 
                         // Progress
@@ -959,389 +1499,26 @@
                             offset,
                         );
                         progressCircle.setAttribute("class", "ring-progress");
-                        // Inline styles
                         progressCircle.style.fill = "none";
                         progressCircle.style.stroke = color;
-                        progressCircle.style.transition =
-                            "stroke-dashoffset 0.5s ease-in-out";
-                        progressCircle.style.transform = "rotate(-90deg)";
-                        progressCircle.style.transformOrigin = "50% 50%";
                         svg.appendChild(progressCircle);
                     });
                     container.appendChild(svg);
                 }
 
-                function updateTable() {
-                    try {
-                        const selectedProfiles = getSelectedProfiles();
-                        const selectedJournals = getSelectedJournals();
-                        const activeProfileList = Array.from(selectedProfiles);
-
-                        tableRows.forEach((row) => {
-                            const journalName = row.dataset.journalName;
-
-                            if (selectedJournals.has(journalName)) {
-                                row.style.display = "";
-                            } else {
-                                row.style.display = "none";
-                                return;
-                            }
-
-                            const totalImages =
-                                parseInt(row.dataset.totalImages, 10) || 0;
-                            let totalMissing = 0;
-                            const ringData = [];
-
-                            activeProfileList.forEach((profile) => {
-                                let missingCount = 0;
-                                if (profile === "Texts") {
-                                    missingCount =
-                                        parseInt(
-                                            row.dataset.missingTexts,
-                                            10,
-                                        ) || 0;
-                                } else {
-                                    const camelCaseKey = toCamelCase(
-                                        `missing-${profile}`,
-                                    );
-                                    missingCount =
-                                        parseInt(
-                                            row.dataset[camelCaseKey],
-                                            10,
-                                        ) || 0;
-                                }
-                                totalMissing += missingCount;
-
-                                let percent = 0;
-                                if (totalImages > 0) {
-                                    percent =
-                                        ((totalImages - missingCount) /
-                                            totalImages) *
-                                        100;
-                                } else if (
-                                    totalImages === 0 &&
-                                    missingCount === 0
-                                ) {
-                                    percent = 100;
-                                }
-                                ringData.push({
-                                    profile: profile,
-                                    percent: Math.max(0, percent),
-                                });
-                            });
-
-                            const totalPossible =
-                                totalImages * activeProfileList.length;
-                            let overallConsistency = 100.0;
-                            if (totalPossible > 0) {
-                                overallConsistency = Math.max(
-                                    0,
-                                    ((totalPossible - totalMissing) /
-                                        totalPossible) *
-                                        100,
-                                );
-                            } else if (totalImages > 0) {
-                                overallConsistency = 0;
-                            }
-
-                            const missingEl =
-                                row.querySelector(".total-missing");
-                            if (missingEl)
-                                missingEl.textContent =
-                                    totalMissing.toLocaleString();
-
-                            const consistEl = row.querySelector(
-                                ".consistency-percent",
-                            );
-                            if (consistEl)
-                                consistEl.textContent = `${overallConsistency.toFixed(2)}%`;
-
-                            const ringContainer =
-                                row.querySelector(".ring-container");
-                            if (ringContainer) {
-                                renderActivityRings(ringContainer, ringData);
-                            }
-                        });
-                    } catch (e) {
-                        console.error("Table Update Error", e);
-                    }
-                }
-
-                // --- TIMELINE LOGIC ---
-                let selectionStart = null;
-                let selectionEnd = null;
-                let isSelecting = false;
-                let minYear = 3000;
-                let maxYear = 1000;
-
-                try {
-                    Object.keys(DATASET_RESULTS).forEach((name) => {
-                        Object.keys(DATASET_RESULTS[name].years).forEach(
-                            (yStr) => {
-                                const y = parseInt(yStr.split("-")[0]);
-                                if (y < minYear) minYear = y;
-                                if (y > maxYear) maxYear = y;
-                            },
-                        );
-                    });
-                    if (minYear > maxYear) {
-                        minYear = 1900;
-                        maxYear = 2000;
-                    }
-                } catch (e) {}
-
-                function updateSelectionStats() {
-                    if (selectionStart === null || selectionEnd === null)
-                        return;
-                    const start = Math.min(selectionStart, selectionEnd);
-                    const end = Math.max(selectionStart, selectionEnd);
-
-                    document.querySelectorAll(".header-cell").forEach((h) => {
-                        const y = parseInt(h.dataset.year);
-                        if (y >= start && y <= end)
-                            h.classList.add("header-cell-selected");
-                        else h.classList.remove("header-cell-selected");
-                    });
-
-                    let totalImages = 0;
-                    const selectedJournals = getSelectedJournals();
-
-                    selectedJournals.forEach((name) => {
-                        if (!DATASET_RESULTS[name]) return;
-                        const yearsData = DATASET_RESULTS[name].years;
-                        for (let y = start; y <= end; y++) {
-                            const yearKey = String(y);
-                            if (yearsData[yearKey])
-                                totalImages +=
-                                    yearsData[yearKey].summary.images;
-                        }
-                    });
-
-                    document
-                        .getElementById("selection-stats")
-                        .classList.remove("hidden");
-                    if (rangeInput && document.activeElement !== rangeInput)
-                        rangeInput.value = `${start} - ${end}`;
-                    document.getElementById(
-                        "selection-total-count",
-                    ).textContent = totalImages.toLocaleString();
-                }
-
-                if (rangeInput) {
-                    rangeInput.addEventListener("change", function () {
-                        const val = this.value;
-                        const matchRange = val.match(
-                            /(\d{4})\s*[-–]\s*(\d{4})/,
-                        );
-                        const matchSingle = val.match(/^(\d{4})$/);
-                        let s, e;
-                        if (matchRange) {
-                            s = parseInt(matchRange[1]);
-                            e = parseInt(matchRange[2]);
-                        } else if (matchSingle) {
-                            s = parseInt(matchSingle[1]);
-                            e = s;
-                        } else return;
-                        if (s < minYear) s = minYear;
-                        if (e > maxYear) e = maxYear;
-                        selectionStart = s;
-                        selectionEnd = e;
-                        this.blur();
-                        updateSelectionStats();
-                    });
-                }
-
-                function renderTimeline() {
-                    const container =
-                        document.getElementById("timeline-container");
-                    if (!container) return;
-                    container.innerHTML = "";
-
-                    const activeProfileList = Array.from(
-                        controls.querySelectorAll('input[type="checkbox"]'),
-                    )
-                        .filter((cb) => cb.checked)
-                        .map((cb) => cb.value);
-                    const selectedJournalSet = getSelectedJournals();
-                    const journalNames = Array.from(selectedJournalSet).sort();
-
-                    if (journalNames.length === 0) {
-                        container.innerHTML =
-                            "<p class='text-gray-500 text-center p-8 dark:text-gray-400'>No journals selected.</p>";
-                        return;
-                    }
-
-                    const gridTable = document.createElement("div");
-                    gridTable.className = "flex flex-col gap-1 min-w-max";
-
-                    const headerRow = document.createElement("div");
-                    headerRow.className = "flex";
-                    const spacer = document.createElement("div");
-                    spacer.className =
-                        "w-40 flex-shrink-0 sticky left-0 bg-gray-50 z-10 border-r dark:bg-gray-700 dark:border-gray-600";
-                    headerRow.appendChild(spacer);
-
-                    for (let y = minYear; y <= maxYear; y++) {
-                        const cell = document.createElement("div");
-                        cell.className =
-                            // UPDATED: Use bg-gray-100 in light mode for missing year to match legend
-                            "w-6 text-[9px] text-gray-500 text-center flex-shrink-0 border-l border-transparent header-cell hover:bg-gray-200 transition-colors dark:text-gray-400 dark:hover:bg-gray-600";
-                        if (y % 10 === 0 || y === minYear || y === maxYear) {
-                            cell.textContent = y;
-                            cell.style.borderLeftColor = "#ccc";
-                        }
-                        cell.dataset.year = y;
-                        if (selectionStart !== null && selectionEnd !== null) {
-                            const s = Math.min(selectionStart, selectionEnd);
-                            const e = Math.max(selectionStart, selectionEnd);
-                            if (y >= s && y <= e)
-                                cell.classList.add("header-cell-selected");
-                        }
-                        cell.addEventListener("mousedown", (e) => {
-                            e.preventDefault();
-                            isSelecting = true;
-                            selectionStart = y;
-                            selectionEnd = y;
-                            updateSelectionStats();
-                        });
-                        cell.addEventListener("mouseenter", () => {
-                            if (isSelecting) {
-                                selectionEnd = y;
-                                updateSelectionStats();
-                            }
-                        });
-                        headerRow.appendChild(cell);
-                    }
-                    document.addEventListener(
-                        "mouseup",
-                        () => (isSelecting = false),
-                    );
-                    gridTable.appendChild(headerRow);
-
-                    journalNames.forEach((name) => {
-                        const row = document.createElement("div");
-                        row.className =
-                            "flex h-12 items-center border-b border-gray-100 hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-600";
-                        const label = document.createElement("div");
-                        label.className =
-                            "w-40 pr-2 text-right text-xs font-bold text-gray-700 flex-shrink-0 sticky left-0 bg-gray-50 z-10 border-r h-full flex items-center justify-end truncate dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300";
-                        label.textContent = name;
-                        row.appendChild(label);
-
-                        const yearsData = DATASET_RESULTS[name]
-                            ? DATASET_RESULTS[name].years
-                            : {};
-
-                        for (let y = minYear; y <= maxYear; y++) {
-                            const cell = document.createElement("div");
-                            cell.className =
-                                "w-6 h-8 flex-shrink-0 timeline-cell border border-white relative group dark:border-gray-700";
-                            let yearKey = String(y);
-                            if (!yearsData[yearKey]) {
-                                // UPDATED: Robust missing year logic
-                                // Default (Light mode)
-                                cell.className += " bg-gray-200"; // Using Tailwind utility class instead of inline style
-
-                                // For Dark mode, we use inline styles checked at render time or a specific class
-                                // Since we can't easily toggle classes inside this loop based on state without re-rendering,
-                                // we rely on Tailwind's dark mode utility classes:
-                                if (
-                                    document.documentElement.classList.contains(
-                                        "dark",
-                                    )
-                                ) {
-                                    cell.style.backgroundColor = "#1f2937"; // Gray 800
-                                }
-                            } else {
-                                const yData = yearsData[yearKey];
-                                const totalImages = yData.summary.images;
-                                if (totalImages === 0) {
-                                    // Empty Folder
-                                    cell.className += " bg-gray-300";
-                                    if (
-                                        document.documentElement.classList.contains(
-                                            "dark",
-                                        )
-                                    ) {
-                                        cell.style.backgroundColor = "#374151"; // Gray 700
-                                    }
-                                } else {
-                                    cell.style.backgroundColor = "transparent";
-                                    const stripesContainer =
-                                        document.createElement("div");
-                                    stripesContainer.className =
-                                        "flex w-full h-full";
-                                    let tooltipContent = `<strong>${name} (${y})</strong><br/><hr class="my-1 border-gray-600"/>`;
-
-                                    activeProfileList.forEach((p) => {
-                                        let missing = 0;
-                                        if (p === "Texts") {
-                                            if (
-                                                yData.summary.profile_counts
-                                                    .texts_group
-                                            )
-                                                missing =
-                                                    yData.summary.profile_counts
-                                                        .texts_group
-                                                        .missing_coverage;
-                                        } else {
-                                            missing =
-                                                yData.summary.profile_counts[
-                                                    p
-                                                ] || 0;
-                                        }
-                                        let percent =
-                                            ((totalImages - missing) /
-                                                totalImages) *
-                                            100;
-                                        const stripe =
-                                            document.createElement("div");
-                                        stripe.className = "flex-1 h-full";
-                                        if (percent === 0)
-                                            stripe.style.backgroundColor =
-                                                "#4b5563";
-                                        else {
-                                            const color =
-                                                PROFILE_COLORS[p] ||
-                                                PROFILE_COLORS[
-                                                    p.split("-")[0]
-                                                ] ||
-                                                PROFILE_COLORS["default"];
-                                            stripe.style.backgroundColor =
-                                                color;
-                                            stripe.style.opacity = Math.max(
-                                                0.3,
-                                                percent / 100,
-                                            );
-                                        }
-                                        stripesContainer.appendChild(stripe);
-                                        tooltipContent += `<div class="flex justify-between items-center text-[10px] mt-1"><span>${p}:</span> <span>${percent.toFixed(0)}%</span></div>`;
-                                    });
-                                    cell.appendChild(stripesContainer);
-                                    cell.insertAdjacentHTML(
-                                        "beforeend",
-                                        `<div class="tooltip w-full h-full absolute top-0 left-0"><span class="tooltip-text">${tooltipContent}</span></div>`,
-                                    );
-                                }
-                            }
-                            row.appendChild(cell);
-                        }
-                        gridTable.appendChild(row);
-                    });
-                    container.appendChild(gridTable);
-                }
-
-                document.addEventListener("triggerTimelineRender", function () {
-                    renderTimeline();
-                });
-
+                // Initial Chart Logic (Same as before)
                 const chartCtx = document.getElementById("journalSizeChart");
                 if (chartCtx) {
                     const journalLabels = Array.from(tableRows).map((row) =>
                         row.children[0].textContent.trim(),
                     );
                     const imageCounts = Array.from(tableRows).map((row) =>
-                        parseInt(row.dataset.totalImages, 10),
+                        // We can grab totals from dataset now or parse DOM (stick to DOM for ease here)
+                        // Actually, we can just read the data from dataset more cleanly:
+                        DATASET_RESULTS[row.dataset.journalName]
+                            ? DATASET_RESULTS[row.dataset.journalName].summary
+                                  .total_images
+                            : 0,
                     );
                     new Chart(chartCtx.getContext("2d"), {
                         type: "bar",
@@ -1360,7 +1537,10 @@
                         options: {
                             maintainAspectRatio: false,
                             scales: {
-                                y: { type: "logarithmic", beginAtZero: true },
+                                y: {
+                                    type: "logarithmic",
+                                    beginAtZero: true,
+                                },
                                 x: {
                                     ticks: {
                                         autoSkip: false,
@@ -1374,35 +1554,11 @@
                     });
                 }
 
-                // --- INITIALIZE ---
-                loadFilters();
-                updateTable(); // <--- IMPORTANT: Called immediately
-
-                if (controls)
+                // Filters Change Event
+                if (controls) {
                     controls.addEventListener("change", () => {
                         saveFilters();
                         updateTable();
-                        const timelineContainer =
-                            document.getElementById("timeline-container");
-                        if (timelineContainer) timelineContainer.innerHTML = "";
-                        if (
-                            !document
-                                .getElementById("view-timeline")
-                                .classList.contains("hidden")
-                        )
-                            renderTimeline();
-                    });
-
-                // Add direct event listeners to journal checkboxes
-                const journalCheckboxes = journalControls.querySelectorAll(
-                    'input[type="checkbox"]',
-                );
-                journalCheckboxes.forEach((checkbox) => {
-                    checkbox.addEventListener("change", () => {
-                        updateTable();
-                        const timelineContainer =
-                            document.getElementById("timeline-container");
-                        if (timelineContainer) timelineContainer.innerHTML = "";
                         if (
                             !document
                                 .getElementById("view-timeline")
@@ -1410,9 +1566,32 @@
                         ) {
                             renderTimeline();
                         }
-                        updateSelectionStats();
                     });
-                });
+                }
+                // Checkboxes Change Event
+                if (journalControls) {
+                    const checkboxes = journalControls.querySelectorAll(
+                        'input[type="checkbox"]',
+                    );
+                    checkboxes.forEach((cb) => {
+                        cb.addEventListener("change", () => {
+                            updateTable();
+                            if (
+                                !document
+                                    .getElementById("view-timeline")
+                                    .classList.contains("hidden")
+                            ) {
+                                renderTimeline();
+                                // Fix: Update stats when individual journal changes
+                                updateSelectionStats();
+                            }
+                        });
+                    });
+                }
+
+                // Init
+                loadFilters();
+                updateTable();
             });
         </script>
     </body>
