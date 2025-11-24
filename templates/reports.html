@@ -1,37 +1,142 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 font-sans p-4 md:p-8">
-    <div class="container mx-auto">
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-            <div>
-                <nav class="text-sm text-gray-500 mb-2">
-                    <a href="{{ url_for('dashboard') }}" class="hover:underline">Dashboard</a> &gt; Reports
-                </nav>
-                <h1 class="text-4xl font-bold text-gray-800">Generate Reports</h1>
-            </div>
-            <nav class="space-x-4 mt-4 md:mt-0">
-                <a href="{{ url_for('dashboard') }}" class="text-blue-600 hover:underline">Dashboard</a>
-                <a href="{{ url_for('index') }}" class="text-blue-600 hover:underline">Re-Scan</a>
-                <a href="{{ url_for('changelog') }}" class="text-blue-600 hover:underline">View Changelog</a>
-            </nav>
-        </header>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Reports</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script>
+            tailwind.config = { darkMode: "class" };
+            if (
+                localStorage.getItem("theme") === "dark" ||
+                (!("theme" in localStorage) &&
+                    window.matchMedia("(prefers-color-scheme: dark)").matches)
+            ) {
+                document.documentElement.classList.add("dark");
+            } else {
+                document.documentElement.classList.remove("dark");
+            }
+        </script>
+    </head>
+    <body
+        class="bg-gray-100 dark:bg-gray-900 font-sans p-4 md:p-8 transition-colors duration-200"
+    >
+        <div class="container mx-auto">
+            <header
+                class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6"
+            >
+                <div>
+                    <nav class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                        <a
+                            href="{{ url_for('dashboard') }}"
+                            class="hover:underline"
+                            >Dashboard</a
+                        >
+                        &gt; Reports
+                    </nav>
+                    <h1
+                        class="text-4xl font-bold text-gray-800 dark:text-white"
+                    >
+                        Generate Reports
+                    </h1>
+                </div>
+                <div class="flex items-center gap-4 mt-4 md:mt-0">
+                    <button
+                        id="theme-toggle"
+                        class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none"
+                        onclick="toggleDarkMode()"
+                    >
+                        <svg
+                            id="theme-toggle-light-icon"
+                            class="hidden w-5 h-5"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                        >
+                            <path
+                                d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
+                                fill-rule="evenodd"
+                                clip-rule="evenodd"
+                            ></path>
+                        </svg>
+                        <svg
+                            id="theme-toggle-dark-icon"
+                            class="hidden w-5 h-5"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                        >
+                            <path
+                                d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"
+                            ></path>
+                        </svg>
+                    </button>
+                    <nav class="space-x-4">
+                        <a
+                            href="{{ url_for('dashboard') }}"
+                            class="text-blue-600 hover:underline dark:text-blue-400"
+                            >Dashboard</a
+                        >
+                        <a
+                            href="{{ url_for('index') }}"
+                            class="text-blue-600 hover:underline dark:text-blue-400"
+                            >Re-Scan</a
+                        >
+                        <a
+                            href="{{ url_for('changelog') }}"
+                            class="text-blue-600 hover:underline dark:text-blue-400"
+                            >View Changelog</a
+                        >
+                    </nav>
+                </div>
+            </header>
 
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-2">OCR To-Do Lists</h2>
-            <p class="text-gray-600 mb-6">Generate downloadable CSV files that list all journals and years with missing text coverage. This helps prioritize OCR efforts.</p>
-            <div class="text-center">
-                <a href="{{ url_for('generate_ocr_candidates') }}" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition-colors text-lg">
-                    Generate OCR Candidate Report
-                </a>
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <h2
+                    class="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-2"
+                >
+                    OCR To-Do Lists
+                </h2>
+                <p class="text-gray-600 dark:text-gray-300 mb-6">
+                    Generate downloadable CSV files that list all journals and
+                    years with missing text coverage. This helps prioritize OCR
+                    efforts.
+                </p>
+                <div class="text-center">
+                    <a
+                        href="{{ url_for('generate_ocr_candidates') }}"
+                        class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition-colors text-lg dark:bg-blue-600 dark:hover:bg-blue-500"
+                    >
+                        Generate OCR Candidate Report
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
-</body>
+        <script>
+            function toggleDarkMode() {
+                if (document.documentElement.classList.contains("dark")) {
+                    document.documentElement.classList.remove("dark");
+                    localStorage.setItem("theme", "light");
+                } else {
+                    document.documentElement.classList.add("dark");
+                    localStorage.setItem("theme", "dark");
+                }
+                updateIcons();
+            }
+            function updateIcons() {
+                const darkIcon = document.getElementById(
+                    "theme-toggle-dark-icon",
+                );
+                const lightIcon = document.getElementById(
+                    "theme-toggle-light-icon",
+                );
+                if (document.documentElement.classList.contains("dark")) {
+                    darkIcon.classList.remove("hidden");
+                    lightIcon.classList.add("hidden");
+                } else {
+                    lightIcon.classList.remove("hidden");
+                    darkIcon.classList.add("hidden");
+                }
+            }
+            updateIcons();
+        </script>
+    </body>
 </html>
-
