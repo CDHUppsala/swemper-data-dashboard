@@ -42,7 +42,16 @@ This application scans large-scale digitized journal archives to cross-reference
     ```bash
     pip install flask markdown
     ```
+## Deploying
 
+```bash
+git clone https://github.com/CDHUppsala/swemper-data-dashboard.git
+cd swemper-data-dashboard
+docker compose up -d
+```
+
+Make sure that the `data.json` exists inside the folder `data` as well, and is named exactly as `data.json`.
+The default port for the container is 3000. Edit the `docker-compose.yml`, and change the port mapping if you want a differnt port.
 ## 📂 Expected Data Structure
 
 The application is configured to scan the specific SweMPer directory structure defined in `dataset_webapp.py`. It expects a **Root Directory** containing **Journal folders**, which then contain specific sub-directories for each file profile.
