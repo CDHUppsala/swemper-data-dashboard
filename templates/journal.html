@@ -160,40 +160,76 @@
             </div>
 
             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                <!-- Filter Controls -->
+                <!-- Filter Controls Header -->
                 <div
-                    class="mb-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600"
+                    class="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 p-4 gap-4"
                 >
-                    <label
-                        class="font-semibold text-gray-700 dark:text-gray-200 block mb-2"
-                        >Calculate Consistency For (Legend):</label
-                    >
-                    <div
-                        id="filter-controls"
-                        class="flex flex-wrap gap-x-6 gap-y-2"
-                    >
-                        {% for profile in filter_profiles %}
-                        <div class="flex items-center">
-                            <input
-                                type="checkbox"
-                                id="{{ profile }}"
-                                name="{{ profile }}"
-                                value="{{ profile }}"
-                                checked
-                                class="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer dark:bg-gray-600 dark:border-gray-500"
-                            />
-                            <label
-                                for="{{ profile }}"
-                                class="text-gray-600 dark:text-gray-300 cursor-pointer flex items-center"
-                            >
-                                <span
-                                    class="color-dot w-3 h-3 rounded-full mr-2 inline-block bg-gray-400"
-                                    data-profile="{{ profile }}"
-                                ></span>
-                                {{ profile }}
-                            </label>
+                    <!-- 1. Profile Filters -->
+                    <div class="flex-1">
+                        <label
+                            class="font-semibold text-gray-700 dark:text-gray-200 block mb-2 border-b border-gray-200 dark:border-gray-600 pb-1"
+                            >Data Profiles (Stats & Legend):</label
+                        >
+                        <div
+                            id="filter-controls"
+                            class="flex flex-wrap gap-x-6 gap-y-2"
+                        >
+                            {% for profile in filter_profiles %}
+                            <div class="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    id="{{ profile }}"
+                                    name="{{ profile }}"
+                                    value="{{ profile }}"
+                                    checked
+                                    class="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer dark:bg-gray-600 dark:border-gray-500"
+                                />
+                                <label
+                                    for="{{ profile }}"
+                                    class="text-gray-600 dark:text-gray-300 cursor-pointer flex items-center"
+                                >
+                                    <span
+                                        class="color-dot w-3 h-3 rounded-full mr-2 inline-block bg-gray-400"
+                                        data-profile="{{ profile }}"
+                                    ></span>
+                                    {{ profile }}
+                                </label>
+                            </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
+                    </div>
+
+                    <!-- 2. Row Visibility Filters -->
+                    <div class="flex flex-col items-start md:items-end">
+                        <span
+                            class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 dark:text-gray-400"
+                            >Filter Rows</span
+                        >
+                        <div class="flex gap-2">
+                            <button
+                                onclick="setFilterMode('ALL')"
+                                id="btn-mode-all"
+                                class="px-3 py-1.5 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors shadow-sm"
+                            >
+                                Show All
+                            </button>
+                            <button
+                                onclick="setFilterMode('AND')"
+                                id="btn-mode-and"
+                                class="px-3 py-1.5 text-sm font-medium rounded-md bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                                title="Show years where ALL selected profiles are present"
+                            >
+                                Matches (AND)
+                            </button>
+                            <button
+                                onclick="setFilterMode('OR')"
+                                id="btn-mode-or"
+                                class="px-3 py-1.5 text-sm font-medium rounded-md bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                                title="Show years where ANY selected profile is present"
+                            >
+                                Matches (OR)
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -410,10 +446,70 @@
             }
             updateIcons();
 
+            // --- State for Row Filtering ---
+            let currentFilterMode = "ALL"; // 'ALL', 'AND', 'OR'
+
+            window.setFilterMode = function (mode) {
+                currentFilterMode = mode;
+                // Update Button UI
+                updateFilterButtons();
+                // Apply Logic
+                applyRowVisibility();
+            };
+
+            function updateFilterButtons() {
+                const btnAll = document.getElementById("btn-mode-all");
+                const btnAnd = document.getElementById("btn-mode-and");
+                const btnOr = document.getElementById("btn-mode-or");
+
+                const activeClasses = [
+                    "bg-blue-600",
+                    "text-white",
+                    "hover:bg-blue-700",
+                    "dark:bg-blue-500",
+                    "dark:hover:bg-blue-600",
+                    "border-transparent",
+                ];
+                const inactiveClasses = [
+                    "bg-white",
+                    "text-gray-700",
+                    "border-gray-300",
+                    "hover:bg-gray-50",
+                    "dark:bg-gray-800",
+                    "dark:text-gray-200",
+                    "dark:border-gray-600",
+                    "dark:hover:bg-gray-700",
+                ];
+
+                function setActive(btn) {
+                    btn.classList.remove(...inactiveClasses);
+                    btn.classList.add(...activeClasses);
+                }
+                function setInactive(btn) {
+                    btn.classList.remove(...activeClasses);
+                    btn.classList.add(...inactiveClasses);
+                }
+
+                if (currentFilterMode === "ALL") setActive(btnAll);
+                else setInactive(btnAll);
+
+                if (currentFilterMode === "AND") setActive(btnAnd);
+                else setInactive(btnAnd);
+
+                if (currentFilterMode === "OR") setActive(btnOr);
+                else setInactive(btnOr);
+            }
+
+            // Global placeholder
+            window.applyRowVisibility = function () {};
+
             document.addEventListener("DOMContentLoaded", function () {
                 const controls = document.getElementById("filter-controls");
                 const tableRows = document.querySelectorAll(".year-row");
-                const storageKey = "dashboardProfileFilters";
+                const storageKey = "dashboardProfileFilters"; // reusing same key to keep consistency across views?
+                // Actually journal filters might be independent. Let's use a specific key if needed, or just defaults.
+                // Keeping same key as Dashboard allows "I filtered these profiles on dashboard, now I see same on journal".
+                // That is usually preferred.
 
                 const PROFILE_COLORS = {
                     Texts: "#10b981",
@@ -482,7 +578,8 @@
                     const maxRadius = size / 2 - strokeWidth / 2;
 
                     ringData.forEach((ring, index) => {
-                        const radius = maxRadius - index * (strokeWidth + gap);
+                        const radius =
+                            maxRadius - index * (strokeWidth + gap);
                         if (radius <= 0) return;
                         const circumference = 2 * Math.PI * radius;
                         const offset =
@@ -502,7 +599,6 @@
                         bgCircle.setAttribute("r", radius);
                         bgCircle.setAttribute("stroke-width", strokeWidth);
                         bgCircle.setAttribute("class", "ring-bg");
-                        // Default light stroke, relies on CSS for dark override
                         bgCircle.style.fill = "none";
                         svg.appendChild(bgCircle);
 
@@ -538,6 +634,87 @@
                     container.appendChild(svg);
                 }
 
+                // --- ROW FILTERING LOGIC ---
+                window.applyRowVisibility = function () {
+                    const activeProfiles = Array.from(getSelectedProfiles());
+
+                    tableRows.forEach((row) => {
+                        // 1. If Show All, always show
+                        if (currentFilterMode === "ALL") {
+                            row.style.display = "";
+                            return;
+                        }
+
+                        // 2. Filter Logic
+                        const totalImages =
+                            parseInt(row.dataset.totalImages, 10) || 0;
+                        let hasData = currentFilterMode === "AND"; // AND=true (fail on missing), OR=false (succeed on match)
+
+                        if (totalImages > 0) {
+                            if (activeProfiles.length === 0) {
+                                hasData = false;
+                            } else {
+                                for (const profile of activeProfiles) {
+                                    // Retrieve missing count from DOM attributes
+                                    let missingRaw;
+                                    if (profile === "Texts") {
+                                        missingRaw =
+                                            row.dataset.missingTexts;
+                                    } else {
+                                        const key =
+                                            "missing" +
+                                            toCamelCase(profile);
+                                        // Some profiles (e.g. metadata-v1) become missingMetadataV1
+                                        // Standard profile keys are lowercase in HTML (missing-metadata-v1)
+                                        // dataset API auto-camels them.
+                                        // Note: toCamelCase function above handles simple cases.
+                                        // We should rely on dataset key lookup if possible or standardized key.
+                                        // Given the complexity of dataset keys, let's try direct attribute access
+                                        // if dataset lookup is tricky.
+                                        // But dataset['missingMetadataV1'] should work if data-missing-metadata-v1 exists.
+                                        // Let's rely on our manual construction:
+                                        // data-missing-{{ profile }}
+                                        // Let's use getAttribute for safety/simplicity
+                                        missingRaw = row.getAttribute(
+                                            `data-missing-${profile}`,
+                                        );
+                                    }
+
+                                    // Default to "Total Images" (Complete Failure) if attribute is missing
+                                    let missing = totalImages;
+                                    if (
+                                        missingRaw !== null &&
+                                        missingRaw !== undefined
+                                    ) {
+                                        missing = parseInt(missingRaw, 10);
+                                    }
+
+                                    const present = totalImages - missing;
+
+                                    if (currentFilterMode === "AND") {
+                                        // EXCLUSIVE: If ANY active profile has 0 files, fail.
+                                        if (present <= 0) {
+                                            hasData = false;
+                                            break;
+                                        }
+                                    } else {
+                                        // INCLUSIVE: If ANY active profile has files, succeed.
+                                        if (present > 0) {
+                                            hasData = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            // Empty year (0 images) has no data -> Hide in Match modes
+                            hasData = false;
+                        }
+
+                        row.style.display = hasData ? "" : "none";
+                    });
+                };
+
                 function updateTable() {
                     const activeProfileList = Array.from(
                         controls.querySelectorAll('input[type="checkbox"]'),
@@ -555,14 +732,25 @@
                             let missingCount = 0;
                             if (profile === "Texts") {
                                 missingCount =
-                                    parseInt(row.dataset.missingTexts, 10) || 0;
-                            } else {
-                                const camelCaseKey = toCamelCase(
-                                    `missing-${profile}`,
-                                );
-                                missingCount =
-                                    parseInt(row.dataset[camelCaseKey], 10) ||
+                                    parseInt(row.dataset.missingTexts, 10) ||
                                     0;
+                            } else {
+                                // For consistency calculation, we assume 0 if attr missing?
+                                // Actually, existing logic relied on camelCase.
+                                // Let's use the safer getAttribute approach here too to be robust.
+                                const val = row.getAttribute(
+                                    `data-missing-${profile}`,
+                                );
+                                missingCount = val
+                                    ? parseInt(val, 10)
+                                    : 0; // Existing logic defaulted to 0 (Perfect coverage) for missing attrs?
+                                // Wait, the original code used:
+                                // const camelCaseKey = toCamelCase(`missing-${profile}`);
+                                // missingCount = parseInt(row.dataset[camelCaseKey], 10) || 0;
+                                // If dataset key is undefined, it becomes 0.
+                                // This implies "If I don't know about it, I assume it's perfect".
+                                // This might be legacy behavior we should preserve for consistency CALCULATION
+                                // but for FILTERING (above) we handled it as "If unknown, assume missing".
                             }
                             totalMissing += missingCount;
                             let percent = 0;
@@ -571,7 +759,10 @@
                                     ((totalImages - missingCount) /
                                         totalImages) *
                                     100;
-                            else if (totalImages === 0 && missingCount === 0)
+                            else if (
+                                totalImages === 0 &&
+                                missingCount === 0
+                            )
                                 percent = 100;
 
                             ringData.push({
@@ -594,13 +785,17 @@
 
                         row.querySelector(".total-missing").textContent =
                             totalMissing.toLocaleString();
-                        row.querySelector(".consistency-percent").textContent =
-                            `${overallConsistency.toFixed(2)}%`;
+                        row.querySelector(
+                            ".consistency-percent",
+                        ).textContent = `${overallConsistency.toFixed(2)}%`;
                         const ringContainer =
                             row.querySelector(".ring-container");
                         if (ringContainer)
                             renderActivityRings(ringContainer, ringData);
                     });
+
+                    // After stats update, enforce visibility filter
+                    applyRowVisibility();
                 }
 
                 const chartCtx = document
@@ -649,6 +844,7 @@
 
                 loadFilters();
                 updateTable();
+                updateFilterButtons(); // Init button state
             });
         </script>
     </body>
