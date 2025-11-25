@@ -350,6 +350,25 @@
                                 >
                                     Deselect All
                                 </button>
+                                <span class="text-gray-300 dark:text-gray-500"
+                                    >|</span
+                                >
+                                <span class="text-gray-500 dark:text-gray-400 font-semibold">Select:</span>
+                                <button
+                                    onclick="window.selectJournalsWithData('AND')"
+                                    class="text-blue-600 hover:underline dark:text-blue-400"
+                                    title="Exclusive: Selects journals where ALL active profiles are present"
+                                >
+                                    Matches (AND)
+                                </button>
+                                <span class="text-gray-300 dark:text-gray-500">/</span>
+                                <button
+                                    onclick="window.selectJournalsWithData('OR')"
+                                    class="text-blue-600 hover:underline dark:text-blue-400"
+                                    title="Inclusive: Selects journals where ANY active profile is present"
+                                >
+                                    Matches (OR)
+                                </button>
                             </div>
                         </div>
                         <div
@@ -1444,6 +1463,106 @@
                             // Fix: Update stats when bulk toggling
                             updateSelectionStats();
                         }
+                    }
+                };
+
+                // New Function: Select journals that have data for selected profiles
+                // mode = 'AND' (Exclusive) or 'OR' (Inclusive)
+                window.selectJournalsWithData = function (mode = 'AND') {
+                    console.clear();
+                    console.log(`--- Starting Select Matches (${mode} Mode) ---`);
+                    const activeProfiles = getSelectedProfiles();
+                    console.log("Active Profiles:", activeProfiles);
+
+                    const jControls = document.getElementById("journal-controls");
+                    if (!jControls) return;
+
+                    const journalCheckboxes = jControls.querySelectorAll(
+                        'input[type="checkbox"]',
+                    );
+
+                    let matchedCount = 0;
+
+                    journalCheckboxes.forEach((cb) => {
+                        const journalName = cb.value;
+                        const data = DATASET_RESULTS[journalName];
+
+                        if (!data) {
+                            cb.checked = false;
+                            return;
+                        }
+
+                        // Force integer conversion for safety
+                        const totalImages = parseInt(data.summary.total_images || 0, 10);
+
+                        // LOGIC BRANCHING
+                        // AND: Assume True, fail if any missing.
+                        // OR: Assume False, succeed if any present.
+                        let hasData = (mode === 'AND');
+
+                        let logMsg = `Checking ${journalName} (Total: ${totalImages}): `;
+
+                        if (totalImages > 0) {
+                            if (activeProfiles.length === 0) {
+                                hasData = false;
+                                logMsg += "No active profiles selected.";
+                            } else {
+                                for (const profile of activeProfiles) {
+                                    let missingRaw;
+
+                                    if (profile === "Texts") {
+                                        missingRaw = data.summary.profile_counts?.texts_group?.missing_coverage;
+                                    } else {
+                                        missingRaw = data.summary.profile_counts?.[profile];
+                                    }
+
+                                    // Robust undefined check
+                                    let missing = totalImages;
+                                    if (missingRaw !== undefined && missingRaw !== null) {
+                                        missing = parseInt(missingRaw, 10);
+                                    }
+
+                                    const present = totalImages - missing;
+                                    logMsg += `[${profile}: present=${present}] `;
+
+                                    if (mode === 'AND') {
+                                        // EXCLUSIVE (AND): If ANY selected profile has 0 files, fail.
+                                        if (present <= 0) {
+                                            hasData = false;
+                                            logMsg += `-> FAILED (Zero data for ${profile})`;
+                                            break;
+                                        }
+                                    } else {
+                                        // INCLUSIVE (OR): If ANY selected profile has files, succeed.
+                                        if (present > 0) {
+                                            hasData = true;
+                                            logMsg += `-> MATCHED (Found data for ${profile})`;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            hasData = false;
+                            logMsg += "Skipped (0 Images)";
+                        }
+
+                        if (hasData) {
+                             if (mode === 'AND') logMsg += "-> MATCHED (All profiles present)";
+                             matchedCount++;
+                        }
+
+                        // console.log(logMsg); // Uncomment for detailed debug
+                        cb.checked = hasData;
+                    });
+
+                    console.log(`Select Matches Complete. Selected ${matchedCount} journals.`);
+
+                    // Force UI Refresh
+                    updateTable();
+                    if (!document.getElementById("view-timeline").classList.contains("hidden")) {
+                        renderTimeline();
+                        updateSelectionStats();
                     }
                 };
 
