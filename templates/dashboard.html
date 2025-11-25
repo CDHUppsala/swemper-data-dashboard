@@ -353,7 +353,10 @@
                                 <span class="text-gray-300 dark:text-gray-500"
                                     >|</span
                                 >
-                                <span class="text-gray-500 dark:text-gray-400 font-semibold">Select:</span>
+                                <span
+                                    class="text-gray-500 dark:text-gray-400 font-semibold"
+                                    >Select:</span
+                                >
                                 <button
                                     onclick="window.selectJournalsWithData('AND')"
                                     class="text-blue-600 hover:underline dark:text-blue-400"
@@ -361,7 +364,9 @@
                                 >
                                     Matches (AND)
                                 </button>
-                                <span class="text-gray-300 dark:text-gray-500">/</span>
+                                <span class="text-gray-300 dark:text-gray-500"
+                                    >/</span
+                                >
                                 <button
                                     onclick="window.selectJournalsWithData('OR')"
                                     class="text-blue-600 hover:underline dark:text-blue-400"
@@ -590,11 +595,12 @@
                                 ></span>
                                 Missing Year
                             </div>
+                            <!-- REMOVED "Empty Folder" ITEM -->
                             <div class="flex items-center">
                                 <span
-                                    class="w-3 h-3 bg-gray-300 mr-1 dark:bg-gray-700"
+                                    class="w-3 h-3 bg-gray-600 mr-1 dark:bg-gray-500"
                                 ></span>
-                                0% Data (Empty)
+                                No prescence of selected profile(s)
                             </div>
                             <div class="flex items-center">
                                 <!-- Fix: Changed single grey box to multi-colored dots to represent profiles -->
@@ -983,9 +989,8 @@
 
                     // 1. Prepare Data
                     const selectedJournalSet = getSelectedJournals();
-                    const visibleJournals = Array.from(
-                        selectedJournalSet,
-                    ).sort();
+                    const visibleJournals =
+                        Array.from(selectedJournalSet).sort();
                     canvasState.journals = visibleJournals;
 
                     // 2. Populate Sidebar (DOM for text searchability/crispness)
@@ -1054,7 +1059,12 @@
 
                         // Bottom border for row
                         ctx.fillStyle = COLORS.border;
-                        ctx.fillRect(0, y + canvasState.cellHeight - 1, width, 1);
+                        ctx.fillRect(
+                            0,
+                            y + canvasState.cellHeight - 1,
+                            width,
+                            1,
+                        );
 
                         for (
                             let year = canvasState.minYear;
@@ -1140,12 +1150,7 @@
                     ctx.fillRect(0, 0, width, canvasState.headerHeight);
                     // Header bottom border
                     ctx.fillStyle = COLORS.border;
-                    ctx.fillRect(
-                        0,
-                        canvasState.headerHeight - 1,
-                        width,
-                        1,
-                    );
+                    ctx.fillRect(0, canvasState.headerHeight - 1, width, 1);
 
                     ctx.font = "9px sans-serif";
                     ctx.textAlign = "center";
@@ -1216,9 +1221,7 @@
                         const x = e.clientX - rect.left; // x relative to canvas
                         const y = e.clientY - rect.top; // y relative to canvas
 
-                        const yearIndex = Math.floor(
-                            x / canvasState.cellWidth,
-                        );
+                        const yearIndex = Math.floor(x / canvasState.cellWidth);
                         const year = canvasState.minYear + yearIndex;
                         const rowIndex = Math.floor(
                             (y - canvasState.headerHeight) /
@@ -1244,12 +1247,10 @@
                             rowIndex >= 0 &&
                             rowIndex < canvasState.journals.length
                         ) {
-                            const journalName =
-                                canvasState.journals[rowIndex];
+                            const journalName = canvasState.journals[rowIndex];
                             const journalData = DATASET_RESULTS[journalName];
                             const yearKey = String(year);
-                            const yearData =
-                                journalData.years[yearKey];
+                            const yearData = journalData.years[yearKey];
 
                             // Show Tooltip
                             tooltip.classList.remove("hidden");
@@ -1262,27 +1263,24 @@
                             } else if (yearData.summary.images === 0) {
                                 tooltip.innerHTML = `<strong>${journalName} (${year})</strong><br/>0 Images`;
                             } else {
-                                const activeProfiles =
-                                    getSelectedProfiles();
+                                const activeProfiles = getSelectedProfiles();
                                 let content = `<strong>${journalName} (${year})</strong><br/><hr class="my-1 border-gray-600"/>`;
                                 activeProfiles.forEach((p) => {
                                     let missing = 0;
                                     if (p === "Texts") {
                                         missing =
                                             yearData.summary.profile_counts
-                                                .texts_group
-                                                .missing_coverage || 0;
+                                                .texts_group.missing_coverage ||
+                                            0;
                                     } else {
                                         missing =
                                             yearData.summary.profile_counts[
                                                 p
                                             ] || 0;
                                     }
-                                    const total =
-                                        yearData.summary.images;
+                                    const total = yearData.summary.images;
                                     const percent =
-                                        ((total - missing) / total) *
-                                        100;
+                                        ((total - missing) / total) * 100;
                                     content += `<div class="flex justify-between items-center text-[10px] mt-1 gap-2"><span>${p}:</span> <span>${percent.toFixed(0)}%</span></div>`;
                                 });
                                 tooltip.innerHTML = content;
@@ -1406,9 +1404,8 @@
                 // --- GLOBAL FUNCTIONS & LISTENERS ---
                 window.switchTab = function (tabName) {
                     const tableBtn = document.getElementById("tab-btn-table");
-                    const timelineBtn = document.getElementById(
-                        "tab-btn-timeline",
-                    );
+                    const timelineBtn =
+                        document.getElementById("tab-btn-timeline");
                     const tableView = document.getElementById("view-table");
                     const timelineView =
                         document.getElementById("view-timeline");
@@ -1468,13 +1465,16 @@
 
                 // New Function: Select journals that have data for selected profiles
                 // mode = 'AND' (Exclusive) or 'OR' (Inclusive)
-                window.selectJournalsWithData = function (mode = 'AND') {
+                window.selectJournalsWithData = function (mode = "AND") {
                     console.clear();
-                    console.log(`--- Starting Select Matches (${mode} Mode) ---`);
+                    console.log(
+                        `--- Starting Select Matches (${mode} Mode) ---`,
+                    );
                     const activeProfiles = getSelectedProfiles();
                     console.log("Active Profiles:", activeProfiles);
 
-                    const jControls = document.getElementById("journal-controls");
+                    const jControls =
+                        document.getElementById("journal-controls");
                     if (!jControls) return;
 
                     const journalCheckboxes = jControls.querySelectorAll(
@@ -1493,12 +1493,15 @@
                         }
 
                         // Force integer conversion for safety
-                        const totalImages = parseInt(data.summary.total_images || 0, 10);
+                        const totalImages = parseInt(
+                            data.summary.total_images || 0,
+                            10,
+                        );
 
                         // LOGIC BRANCHING
                         // AND: Assume True, fail if any missing.
                         // OR: Assume False, succeed if any present.
-                        let hasData = (mode === 'AND');
+                        let hasData = mode === "AND";
 
                         let logMsg = `Checking ${journalName} (Total: ${totalImages}): `;
 
@@ -1511,21 +1514,29 @@
                                     let missingRaw;
 
                                     if (profile === "Texts") {
-                                        missingRaw = data.summary.profile_counts?.texts_group?.missing_coverage;
+                                        missingRaw =
+                                            data.summary.profile_counts
+                                                ?.texts_group?.missing_coverage;
                                     } else {
-                                        missingRaw = data.summary.profile_counts?.[profile];
+                                        missingRaw =
+                                            data.summary.profile_counts?.[
+                                                profile
+                                            ];
                                     }
 
                                     // Robust undefined check
                                     let missing = totalImages;
-                                    if (missingRaw !== undefined && missingRaw !== null) {
+                                    if (
+                                        missingRaw !== undefined &&
+                                        missingRaw !== null
+                                    ) {
                                         missing = parseInt(missingRaw, 10);
                                     }
 
                                     const present = totalImages - missing;
                                     logMsg += `[${profile}: present=${present}] `;
 
-                                    if (mode === 'AND') {
+                                    if (mode === "AND") {
                                         // EXCLUSIVE (AND): If ANY selected profile has 0 files, fail.
                                         if (present <= 0) {
                                             hasData = false;
@@ -1548,36 +1559,40 @@
                         }
 
                         if (hasData) {
-                             if (mode === 'AND') logMsg += "-> MATCHED (All profiles present)";
-                             matchedCount++;
+                            if (mode === "AND")
+                                logMsg += "-> MATCHED (All profiles present)";
+                            matchedCount++;
                         }
 
                         // console.log(logMsg); // Uncomment for detailed debug
                         cb.checked = hasData;
                     });
 
-                    console.log(`Select Matches Complete. Selected ${matchedCount} journals.`);
+                    console.log(
+                        `Select Matches Complete. Selected ${matchedCount} journals.`,
+                    );
 
                     // Force UI Refresh
                     updateTable();
-                    if (!document.getElementById("view-timeline").classList.contains("hidden")) {
+                    if (
+                        !document
+                            .getElementById("view-timeline")
+                            .classList.contains("hidden")
+                    ) {
                         renderTimeline();
                         updateSelectionStats();
                     }
                 };
 
-                document.addEventListener(
-                    "triggerTimelineRender",
-                    function () {
-                        if (
-                            !document
-                                .getElementById("view-timeline")
-                                .classList.contains("hidden")
-                        ) {
-                            drawCanvas();
-                        }
-                    },
-                );
+                document.addEventListener("triggerTimelineRender", function () {
+                    if (
+                        !document
+                            .getElementById("view-timeline")
+                            .classList.contains("hidden")
+                    ) {
+                        drawCanvas();
+                    }
+                });
 
                 // Initialize Activity Rings (Shared SVG Logic)
                 function renderActivityRings(container, ringData) {
@@ -1597,8 +1612,7 @@
                     const gap = 3;
 
                     ringData.forEach((ring, index) => {
-                        const radius =
-                            maxRadius - index * (strokeWidth + gap);
+                        const radius = maxRadius - index * (strokeWidth + gap);
                         if (radius <= 0) return;
                         const circumference = 2 * Math.PI * radius;
                         const offset =
@@ -1652,8 +1666,7 @@
                 }
 
                 // Initial Chart Logic (Same as before)
-                const chartCtx =
-                    document.getElementById("journalSizeChart");
+                const chartCtx = document.getElementById("journalSizeChart");
                 if (chartCtx) {
                     const journalLabels = Array.from(tableRows).map((row) =>
                         row.children[0].textContent.trim(),
@@ -1662,8 +1675,8 @@
                         // We can grab totals from dataset now or parse DOM (stick to DOM for ease here)
                         // Actually, we can just read the data from dataset more cleanly:
                         DATASET_RESULTS[row.dataset.journalName]
-                            ? DATASET_RESULTS[row.dataset.journalName]
-                                  .summary.total_images
+                            ? DATASET_RESULTS[row.dataset.journalName].summary
+                                  .total_images
                             : 0,
                     );
                     new Chart(chartCtx.getContext("2d"), {
@@ -1674,8 +1687,7 @@
                                 {
                                     label: "Total Image Count",
                                     data: imageCounts,
-                                    backgroundColor:
-                                        "rgba(59, 130, 246, 0.5)",
+                                    backgroundColor: "rgba(59, 130, 246, 0.5)",
                                     borderColor: "rgba(59, 130, 246, 1)",
                                     borderWidth: 1,
                                 },
