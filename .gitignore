@@ -22,6 +22,7 @@ tmp/
 
 # Exceptions: Keep specific config JSONs if you have them, but ignore scan dumps
 !config.json
+!data.json
 
 # --- OS Specific ---
 .DS_Store
