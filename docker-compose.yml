@@ -1,0 +1,8 @@
+services:
+  app:
+    build: .
+    ports:
+      - 3000:9092
+    volumes:
+      - ./data:/data
+    command: --load-state /data/data.json
