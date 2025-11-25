@@ -1783,6 +1783,56 @@
                     });
                 }
 
+                // Initial Chart Logic (Same as before)
+                const chartCtx =
+                    document.getElementById("journalSizeChart");
+                if (chartCtx) {
+                    const journalLabels = Array.from(tableRows).map((row) =>
+                        row.children[0].textContent.trim(),
+                    );
+                    const imageCounts = Array.from(tableRows).map((row) =>
+                        // We can grab totals from dataset now or parse DOM (stick to DOM for ease here)
+                        // Actually, we can just read the data from dataset more cleanly:
+                        DATASET_RESULTS[row.dataset.journalName]
+                            ? DATASET_RESULTS[row.dataset.journalName]
+                                  .summary.total_images
+                            : 0,
+                    );
+                    new Chart(chartCtx.getContext("2d"), {
+                        type: "bar",
+                        data: {
+                            labels: journalLabels,
+                            datasets: [
+                                {
+                                    label: "Total Image Count",
+                                    data: imageCounts,
+                                    backgroundColor:
+                                        "rgba(59, 130, 246, 0.5)",
+                                    borderColor: "rgba(59, 130, 246, 1)",
+                                    borderWidth: 1,
+                                },
+                            ],
+                        },
+                        options: {
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    type: "logarithmic",
+                                    beginAtZero: true,
+                                },
+                                x: {
+                                    ticks: {
+                                        autoSkip: false,
+                                        maxRotation: 90,
+                                        minRotation: 45,
+                                    },
+                                },
+                            },
+                            plugins: { legend: { display: false } },
+                        },
+                    });
+                }
+
                 // Init
                 loadFilters();
                 updateTable();
