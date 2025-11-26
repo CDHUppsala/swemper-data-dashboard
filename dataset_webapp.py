@@ -31,7 +31,43 @@ app.secret_key = os.urandom(24)  # Required for session management
 SCAN_RESULTS = None
 ROOT_DIR = None
 SAVE_STATE_PATH = None
-TEMP_DIR = Path('./tmp')  # For temporary report files
+CONFIG = {}
+
+def load_config():
+    global CONFIG
+    config_path = Path('config.json')
+    defaults = {
+        "server": {
+            "host": "0.0.0.0",
+            "port": 9092,
+            "debug": False
+        },
+        "paths": {
+            "temp_dir": "./tmp"
+        }
+    }
+    
+    if config_path.exists():
+        try:
+            with open(config_path, 'r') as f:
+                user_config = json.load(f)
+                # Simple deep merge for 2 levels
+                for section, values in user_config.items():
+                    if section in defaults and isinstance(values, dict):
+                        defaults[section].update(values)
+                    else:
+                        defaults[section] = values
+                print(f"✅ Loaded configuration from {config_path}")
+        except Exception as e:
+            print(f"⚠️ Error loading config.json: {e}. Using defaults.")
+    
+    CONFIG = defaults
+    return CONFIG
+
+# Load config immediately
+load_config()
+
+TEMP_DIR = Path(CONFIG['paths']['temp_dir'])  # For temporary report files
 
 # --- Helper Functions ---
 
@@ -392,8 +428,12 @@ if __name__ == '__main__':
             exit(1)
         if args.save_state:
             SAVE_STATE_PATH = args.save_state
-        print(
-            f"✅ Server started. Open http://127.0.0.1:9092 to begin scanning '{ROOT_DIR.name}'.")
 
     TEMP_DIR.mkdir(exist_ok=True)
-    app.run(host='0.0.0.0', port=9092, debug=False)
+    
+    host = CONFIG['server']['host']
+    port = CONFIG['server']['port']
+    debug = CONFIG['server']['debug']
+    
+    print(f"✅ Server started. Open http://127.0.0.1:{port} to begin scanning '{ROOT_DIR.name}'.")
+    app.run(host=host, port=port, debug=debug)

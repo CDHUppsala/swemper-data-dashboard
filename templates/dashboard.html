@@ -1,771 +1,1746 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Dashboard - All Journals</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script>
-            tailwind.config = {
-                darkMode: "class",
-            };
-        </script>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <style>
-            /* --- Tooltip Styles --- */
-            .tooltip {
-                position: relative;
-                display: inline-block;
-                cursor: pointer;
-            }
-            .tooltip .tooltip-text {
-                visibility: hidden;
-                width: 280px;
-                background-color: #1f2937;
-                color: #fff;
-                text-align: left;
-                border-radius: 6px;
-                padding: 10px;
-                position: absolute;
-                z-index: 50;
-                bottom: 125%;
-                left: 50%;
-                margin-left: -140px;
-                opacity: 0;
-                transition: opacity 0.2s;
-                font-size: 0.75rem;
-                box-shadow:
-                    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-                    0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            }
-            .tooltip .tooltip-text::after {
-                content: "";
-                position: absolute;
-                top: 100%;
-                left: 50%;
-                margin-left: -5px;
-                border-width: 5px;
-                border-style: solid;
-                border-color: #1f2937 transparent transparent transparent;
-            }
-            .tooltip:hover .tooltip-text {
-                visibility: visible;
-                opacity: 1;
-            }
 
-            /* --- Activity Ring Styles --- */
-            .ring-container {
-                position: relative;
-                display: inline-block;
-            }
-            .ring-bg {
-                fill: none;
-                stroke: #e5e7eb; /* Fixed Light Gray for empty tracks */
-            }
-            /* Dark mode override via CSS */
-            .dark .ring-bg {
-                stroke: #374151; /* Gray-700 */
-            }
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - All Journals</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* --- Tooltip Styles --- */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
 
-            .ring-progress {
-                fill: none;
-                stroke-linecap: round;
-                transform: rotate(-90deg);
-                transform-origin: 50% 50%;
-                transition: stroke-dashoffset 0.5s ease-in-out;
-            }
-            .ring-container:hover .ring-bg {
-                stroke: #d1d5db;
-            }
-            .dark .ring-container:hover .ring-bg {
-                stroke: #4b5563;
-            }
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 280px;
+            background-color: #1f2937;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 50;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -140px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 0.75rem;
+            box-shadow:
+                0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
 
-            /* --- Hover Legend Styles --- */
-            .ring-legend {
-                display: none;
-                position: absolute;
-                bottom: 100%;
-                left: 50%;
-                transform: translateX(-50%);
-                background-color: white;
-                border: 1px solid #e5e7eb;
-                padding: 8px;
-                border-radius: 6px;
-                box-shadow:
-                    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-                    0 2px 4px -1px rgba(0, 0, 0, 0.06);
-                z-index: 50;
-                width: max-content;
-                min-width: 120px;
-                font-size: 0.75rem;
-                pointer-events: none;
-                margin-bottom: 8px;
-            }
-            .dark .ring-legend {
-                background-color: #1f2937;
-                border-color: #374151;
-                color: #f3f4f6;
-            }
+        .tooltip .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1f2937 transparent transparent transparent;
+        }
 
-            .ring-legend::after {
-                content: " ";
-                position: absolute;
-                top: 100%;
-                left: 50%;
-                margin-left: -5px;
-                border-width: 5px;
-                border-style: solid;
-                border-color: white transparent transparent transparent;
-            }
-            .dark .ring-legend::after {
-                border-color: #1f2937 transparent transparent transparent;
-            }
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
 
-            .ring-container:hover .ring-legend {
-                display: block;
-            }
-            .legend-item {
-                display: flex;
-                align-items: center;
-                margin-bottom: 4px;
-            }
-            .legend-item:last-child {
-                margin-bottom: 0;
-            }
-            .legend-color {
-                width: 8px;
-                height: 8px;
-                border-radius: 50%;
-                margin-right: 8px;
-                flex-shrink: 0;
-            }
-            .legend-text {
-                color: #374151;
-                font-weight: 500;
-            }
-            .dark .legend-text {
-                color: #e5e7eb;
-            }
+        /* --- Activity Ring Styles --- */
+        .ring-container {
+            position: relative;
+            display: inline-block;
+        }
 
-            /* Canvas Tooltip */
-            #canvas-tooltip {
-                pointer-events: none;
-                z-index: 50;
-                font-size: 0.75rem;
-                box-shadow:
-                    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-                    0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            }
-        </style>
-    </head>
+        .ring-bg {
+            fill: none;
+            stroke: #e5e7eb;
+            /* Fixed Light Gray for empty tracks */
+        }
 
-    <body
-        class="bg-gray-100 font-sans p-4 md:p-8 dark:bg-gray-900 transition-colors duration-200"
-    >
-        <div class="container mx-auto">
-            <header
-                class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6"
-            >
-                <div>
-                    <h1
-                        class="text-4xl font-bold text-gray-800 dark:text-white"
-                    >
-                        All Journals Overview
-                    </h1>
-                    <p class="text-gray-500 dark:text-gray-400 mt-1">
-                        Scanned at: {{ data.metadata.scan_time }} UTC
-                    </p>
-                </div>
-                <div class="flex items-center gap-4 mt-4 md:mt-0">
-                    <!-- Dark Mode Toggle -->
-                    <button
-                        id="theme-toggle"
-                        class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700"
-                        onclick="toggleDarkMode()"
-                    >
-                        <!-- Sun Icon -->
-                        <svg
-                            id="theme-toggle-light-icon"
-                            class="hidden w-5 h-5"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                            xmlns="http://www.w3.org/2000/svg"
-                        >
-                            <path
-                                d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
-                                fill-rule="evenodd"
-                                clip-rule="evenodd"
-                            ></path>
-                        </svg>
-                        <!-- Moon Icon -->
-                        <svg
-                            id="theme-toggle-dark-icon"
-                            class="hidden w-5 h-5"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                            xmlns="http://www.w3.org/2000/svg"
-                        >
-                            <path
-                                d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"
-                            ></path>
-                        </svg>
-                    </button>
+        /* Dark mode override via CSS */
+        .dark .ring-bg {
+            stroke: #374151;
+            /* Gray-700 */
+        }
 
-                    <nav class="space-x-4">
-                        <a
-                            href="{{ url_for('reports') }}"
-                            class="text-blue-600 hover:underline dark:text-blue-400"
-                            >Reports</a
-                        >
-                        <span class="text-gray-400 mx-2">|</span>
-                        <a
-                            href="{{ url_for('index') }}"
-                            class="text-blue-600 hover:underline dark:text-blue-400"
-                            >Re-Scan</a
-                        >
-                        <span class="text-gray-400 mx-2">|</span>
-                        <a
-                            href="{{ url_for('changelog') }}"
-                            class="text-blue-600 hover:underline dark:text-blue-400"
-                            >View Changelog</a
-                        >
-                    </nav>
-                </div>
-            </header>
+        .ring-progress {
+            fill: none;
+            stroke-linecap: round;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+            transition: stroke-dashoffset 0.5s ease-in-out;
+        }
 
-            <!-- Bar Chart -->
-            <div
-                class="bg-white p-6 rounded-lg shadow-md mb-8 dark:bg-gray-800"
-            >
-                <h2
-                    class="text-2xl font-semibold text-gray-700 mb-4 dark:text-gray-200"
-                >
-                    Total Images per Journal
-                </h2>
-                <div class="relative h-96">
-                    <canvas id="journalSizeChart"></canvas>
-                </div>
+        .ring-container:hover .ring-bg {
+            stroke: #d1d5db;
+        }
+
+        .dark .ring-container:hover .ring-bg {
+            stroke: #4b5563;
+        }
+
+        /* --- Hover Legend Styles --- */
+        .ring-legend {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            padding: 8px;
+            border-radius: 6px;
+            box-shadow:
+                0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            z-index: 50;
+            width: max-content;
+            min-width: 120px;
+            font-size: 0.75rem;
+            pointer-events: none;
+            margin-bottom: 8px;
+        }
+
+        .dark .ring-legend {
+            background-color: #1f2937;
+            border-color: #374151;
+            color: #f3f4f6;
+        }
+
+        .ring-legend::after {
+            content: " ";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: white transparent transparent transparent;
+        }
+
+        .dark .ring-legend::after {
+            border-color: #1f2937 transparent transparent transparent;
+        }
+
+        .ring-container:hover .ring-legend {
+            display: block;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .legend-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .legend-color {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .legend-text {
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .dark .legend-text {
+            color: #e5e7eb;
+        }
+
+        /* Canvas Tooltip */
+        #canvas-tooltip {
+            pointer-events: none;
+            z-index: 50;
+            font-size: 0.75rem;
+            box-shadow:
+                0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 font-sans p-4 md:p-8 dark:bg-gray-900 transition-colors duration-200">
+    <div class="container mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+            <div>
+                <h1 class="text-4xl font-bold text-gray-800 dark:text-white">
+                    All Journals Overview
+                </h1>
+                <p class="text-gray-500 dark:text-gray-400 mt-1">
+                    Scanned at: {{ data.metadata.scan_time }} UTC
+                </p>
             </div>
+            <div class="flex items-center gap-4 mt-4 md:mt-0">
+                <!-- Dark Mode Toggle -->
+                <button id="theme-toggle"
+                    class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700"
+                    onclick="toggleDarkMode()">
+                    <!-- Sun Icon -->
+                    <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
+                            fill-rule="evenodd" clip-rule="evenodd"></path>
+                    </svg>
+                    <!-- Moon Icon -->
+                    <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+                    </svg>
+                </button>
 
-            <!-- DATA INJECTION -->
-            <script id="full-dataset" type="application/json">
+                <nav class="space-x-4">
+                    <a href="{{ url_for('reports') }}"
+                        class="text-blue-600 hover:underline dark:text-blue-400">Reports</a>
+                    <span class="text-gray-400 mx-2">|</span>
+                    <a href="{{ url_for('index') }}"
+                        class="text-blue-600 hover:underline dark:text-blue-400">Re-Scan</a>
+                    <span class="text-gray-400 mx-2">|</span>
+                    <a href="{{ url_for('changelog') }}" class="text-blue-600 hover:underline dark:text-blue-400">View
+                        Changelog</a>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Bar Chart -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8 dark:bg-gray-800">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4 dark:text-gray-200">
+                Total Images per Journal
+            </h2>
+            <div class="relative h-96">
+                <canvas id="journalSizeChart"></canvas>
+            </div>
+        </div>
+
+        <!-- DATA INJECTION -->
+        <script id="full-dataset" type="application/json">
                 {{ data.results | tojson }}
             </script>
 
-            <!-- Tabs Navigation -->
-            <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
-                <ul
-                    class="flex flex-wrap -mb-px text-sm font-medium text-center"
-                >
-                    <li class="mr-2">
-                        <button
-                            id="tab-btn-table"
-                            onclick="switchTab('table')"
-                            class="inline-block p-4 text-blue-600 border-b-2 border-blue-600 rounded-t-lg active group dark:text-blue-400 dark:border-blue-400"
-                        >
-                            Table View
-                        </button>
-                    </li>
-                    <li class="mr-2">
-                        <button
-                            id="tab-btn-timeline"
-                            onclick="switchTab('timeline')"
-                            class="inline-block p-4 text-gray-500 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                        >
-                            Dataset Timeline
-                        </button>
-                    </li>
-                </ul>
-            </div>
+        <!-- Tabs Navigation -->
+        <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
+            <ul class="flex flex-wrap -mb-px text-sm font-medium text-center">
+                <li class="mr-2">
+                    <button id="tab-btn-table" onclick="switchTab('table')"
+                        class="inline-block p-4 text-blue-600 border-b-2 border-blue-600 rounded-t-lg active group dark:text-blue-400 dark:border-blue-400">
+                        Table View
+                    </button>
+                </li>
+                <li class="mr-2">
+                    <button id="tab-btn-timeline" onclick="switchTab('timeline')"
+                        class="inline-block p-4 text-gray-500 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
+                        Dataset Timeline
+                    </button>
+                </li>
+            </ul>
+        </div>
 
-            <div
-                class="bg-white p-6 rounded-lg shadow-md min-h-[500px] dark:bg-gray-800"
-            >
-                <!-- FILTERS GRID -->
-                <div
-                    class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 items-start"
-                >
-                    <!-- 1. Data Profiles -->
-                    <div
-                        class="p-4 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600"
-                    >
-                        <div
-                            class="flex justify-between items-center mb-2 border-b pb-2 dark:border-gray-500"
-                        >
-                            <label
-                                class="font-bold text-gray-700 dark:text-gray-200"
-                                >Data Profiles</label
-                            >
-                            <div class="text-xs space-x-2">
-                                <button
-                                    onclick="window.toggleAllProfiles(true)"
-                                    class="text-blue-600 hover:underline dark:text-blue-400"
-                                >
-                                    Select All
-                                </button>
-                                <span class="text-gray-300 dark:text-gray-500"
-                                    >|</span
-                                >
-                                <button
-                                    onclick="window.toggleAllProfiles(false)"
-                                    class="text-blue-600 hover:underline dark:text-blue-400"
-                                >
-                                    Deselect All
-                                </button>
-                            </div>
-                        </div>
-                        <div
-                            id="filter-controls"
-                            class="flex flex-wrap gap-x-4 gap-y-2 mt-2"
-                        >
-                            {% for profile in filter_profiles %}
-                            <div class="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    id="{{ profile }}"
-                                    name="{{ profile }}"
-                                    value="{{ profile }}"
-                                    checked
-                                    class="mr-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer dark:bg-gray-600 dark:border-gray-500"
-                                />
-                                <label
-                                    for="{{ profile }}"
-                                    class="text-gray-600 cursor-pointer flex items-center text-sm dark:text-gray-300"
-                                >
-                                    <span
-                                        class="color-dot w-3 h-3 rounded-full mr-1 inline-block bg-gray-400"
-                                        data-profile="{{ profile }}"
-                                    ></span>
-                                    {{ profile }}
-                                </label>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <!-- 2. Journal Filter -->
-                    <div
-                        class="p-4 border rounded-lg bg-gray-50 flex flex-col max-h-[500px] dark:bg-gray-700 dark:border-gray-600"
-                    >
-                        <div
-                            class="flex justify-between items-center mb-2 border-b pb-2 dark:border-gray-500"
-                        >
-                            <label
-                                class="font-bold text-gray-700 dark:text-gray-200"
-                                >Journals Displayed</label
-                            >
-                            <div class="text-xs space-x-2">
-                                <button
-                                    onclick="window.toggleAllJournals(true)"
-                                    class="text-blue-600 hover:underline dark:text-blue-400"
-                                >
-                                    Select All
-                                </button>
-                                <span class="text-gray-300 dark:text-gray-500"
-                                    >|</span
-                                >
-                                <button
-                                    onclick="window.toggleAllJournals(false)"
-                                    class="text-blue-600 hover:underline dark:text-blue-400"
-                                >
-                                    Deselect All
-                                </button>
-                                <span class="text-gray-300 dark:text-gray-500"
-                                    >|</span
-                                >
-                                <span class="text-gray-500 dark:text-gray-400 font-semibold">Select:</span>
-                                <button
-                                    onclick="window.selectJournalsWithData('AND')"
-                                    class="text-blue-600 hover:underline dark:text-blue-400"
-                                    title="Exclusive: Selects journals where ALL active profiles are present"
-                                >
-                                    Matches (AND)
-                                </button>
-                                <span class="text-gray-300 dark:text-gray-500">/</span>
-                                <button
-                                    onclick="window.selectJournalsWithData('OR')"
-                                    class="text-blue-600 hover:underline dark:text-blue-400"
-                                    title="Inclusive: Selects journals where ANY active profile is present"
-                                >
-                                    Matches (OR)
-                                </button>
-                            </div>
-                        </div>
-                        <div
-                            id="journal-controls"
-                            class="overflow-y-auto flex-1 grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-0.5 content-start pr-2"
-                        >
-                            {% for name, _ in
-                            data.results|dictsort(case_sensitive=false) %}
-                            <div class="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    id="j-{{ name }}"
-                                    name="journal_filter"
-                                    value="{{ name }}"
-                                    checked
-                                    class="mr-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer journal-checkbox dark:bg-gray-600 dark:border-gray-500"
-                                />
-                                <label
-                                    for="j-{{ name }}"
-                                    class="text-sm text-gray-600 cursor-pointer truncate dark:text-gray-300"
-                                    title="{{ name }}"
-                                >
-                                    {{ name }}
-                                </label>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- VIEW 1: TABLE -->
-                <div id="view-table">
-                    <div class="overflow-x-auto">
-                        <table
-                            id="journals-table"
-                            class="min-w-full divide-y divide-gray-200 dark:divide-gray-700"
-                        >
-                            <thead class="bg-gray-50 dark:bg-gray-700">
-                                <tr>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300"
-                                    >
-                                        Journal Name
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300"
-                                    >
-                                        Total Image Count
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300"
-                                    >
-                                        Complete data
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300"
-                                    >
-                                        Incomplete/Missing
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300"
-                                    >
-                                        Total Missing*
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300"
-                                    >
-                                        Consistency*
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300"
-                                    >
-                                        Progress
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300"
-                                    >
-                                        Details
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody
-                                class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700"
-                            >
-                                {% for name, journal in data.results|dictsort %}
-                                <tr
-                                    class="journal-row dark:hover:bg-gray-750"
-                                    data-journal-name="{{ name }}"
-                                >
-                                    <td
-                                        class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white"
-                                    >
-                                        {{ name }}
-                                    </td>
-                                    <td
-                                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
-                                    >
-                                        {{
-                                        "{:,}".format(journal.summary.total_images)
-                                        }}
-                                    </td>
-
-                                    <!-- Complete Data -->
-                                    <td
-                                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 align-top"
-                                    >
-                                        <div
-                                            class="flex flex-col gap-2 items-start"
-                                        >
-                                            {% set texts_group =
-                                            journal.summary.profile_counts.texts_group
-                                            %} {% if
-                                            texts_group.missing_coverage == 0
-                                            and journal.summary.total_images > 0
-                                            %}
-                                            <div>
-                                                <span
-                                                    class="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                                    >✅ Texts</span
-                                                >
-                                            </div>
-                                            {% endif %} {% for profile, count in
-                                            journal.summary.profile_counts|dictsort
-                                            %} {% if profile != 'texts_group'
-                                            and count == 0 and
-                                            journal.summary.total_images > 0 %}
-                                            <span
-                                                class="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                                >✅ {{ profile }}</span
-                                            >
-                                            {% endif %} {% endfor %}
-                                        </div>
-                                    </td>
-
-                                    <!-- Incomplete Data -->
-                                    <td
-                                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 align-top"
-                                    >
-                                        <div
-                                            class="flex flex-col gap-3 items-start"
-                                        >
-                                            {% set texts_group =
-                                            journal.summary.profile_counts.texts_group
-                                            %} {% if
-                                            texts_group.missing_coverage > 0 %}
-                                            <div>
-                                                <span
-                                                    class="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                                                    >🟡 Texts: {{
-                                                    "{:,}".format(texts_group.missing_coverage)
-                                                    }} missing</span
-                                                >
-                                            </div>
-                                            {% endif %} {% for profile, count in
-                                            journal.summary.profile_counts|dictsort
-                                            if profile != 'texts_group' and
-                                            count > 0 %}
-                                            <span
-                                                class="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                                                >🟡 {{ profile }}: {{
-                                                "{:,}".format(count) }}
-                                                missing</span
-                                            >
-                                            {% endfor %}
-                                        </div>
-                                    </td>
-
-                                    <td
-                                        class="total-missing px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 font-semibold align-top"
-                                    ></td>
-                                    <td
-                                        class="consistency-percent px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 font-semibold align-top"
-                                    ></td>
-                                    <td
-                                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 align-top"
-                                    >
-                                        <div
-                                            class="ring-container"
-                                            style="width: 120px; height: 120px"
-                                        ></div>
-                                    </td>
-                                    <td
-                                        class="px-6 py-4 whitespace-nowrap text-sm font-medium align-top"
-                                    >
-                                        <a
-                                            href="{{ url_for('journal_detail', journal_name=name) }}"
-                                            class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                                            >View Details</a
-                                        >
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- VIEW 2: CANVAS TIMELINE (Hybrid Layout) -->
-                <div id="view-timeline" class="hidden">
-                    <div class="mb-4">
-                        <h3
-                            class="text-xl font-bold text-gray-700 mb-2 dark:text-gray-200"
-                        >
-                            Multi-Journal Timeline
-                        </h3>
-                        <p
-                            class="text-sm text-gray-500 mb-4 dark:text-gray-400"
-                        >
-                            Drag across the years in the header row to calculate
-                            totals.
-                        </p>
-                        <!-- Color Legend -->
-                        <div
-                            class="flex flex-wrap items-center gap-4 text-xs text-gray-600 mb-4 dark:text-gray-400"
-                        >
-                            <div class="flex items-center">
-                                <span
-                                    class="w-3 h-3 border mr-1 bg-gray-200 border-gray-400 dark:bg-gray-800 dark:border-gray-600"
-                                ></span>
-                                Missing Year
-                            </div>
-                            <!-- Removed "Empty Folder" to avoid user confusion -->
-                            <div class="flex items-center">
-                                <span
-                                    class="w-3 h-3 bg-gray-600 mr-1 dark:bg-gray-500"
-                                ></span>
-                                No Presence of Selected Profile(s)
-                            </div>
-                            <div class="flex items-center">
-                                <!-- Fix: Changed single grey box to multi-colored dots to represent profiles -->
-                                <div class="flex mr-1 space-x-0.5">
-                                    <span
-                                        class="w-3 h-3 rounded-full bg-[#10b981]"
-                                    ></span>
-                                    <span
-                                        class="w-3 h-3 rounded-full bg-[#3b82f6]"
-                                    ></span>
-                                    <span
-                                        class="w-3 h-3 rounded-full bg-[#f59e0b]"
-                                    ></span>
-                                    <span
-                                        class="w-3 h-3 rounded-full bg-[#8b5cf6]"
-                                    ></span>
-                                </div>
-                                <span class="ml-1">Profile Colors</span>
-                            </div>
-                        </div>
-
-                        <!-- Selection Stats Panel -->
-                        <div
-                            id="selection-stats"
-                            class="hidden p-4 bg-blue-50 border border-blue-200 rounded-lg flex justify-between items-center shadow-sm dark:bg-gray-700 dark:border-gray-600"
-                        >
-                            <div>
-                                <span
-                                    class="text-blue-800 font-bold text-lg mr-2 dark:text-blue-300"
-                                    >Selected Range:</span
-                                >
-                                <input
-                                    type="text"
-                                    id="selection-range-input"
-                                    class="bg-transparent border-b-2 border-blue-300 text-blue-900 font-mono text-lg focus:outline-none focus:border-blue-600 w-40 text-center dark:text-blue-100 dark:border-blue-500"
-                                    placeholder="YYYY - YYYY"
-                                />
-                            </div>
-                            <div class="text-right">
-                                <span
-                                    class="text-gray-600 text-sm uppercase tracking-wide dark:text-gray-400"
-                                    >Total Pages (Filtered)</span
-                                ><br />
-                                <span
-                                    id="selection-total-count"
-                                    class="text-3xl font-bold text-blue-600 dark:text-blue-400"
-                                    >0</span
-                                >
-                            </div>
-                            <button
-                                onclick="window.clearTimelineSelection()"
-                                class="text-sm text-gray-500 hover:text-red-500 underline ml-4 dark:text-gray-400 dark:hover:text-red-400"
-                            >
-                                Clear
+        <div class="bg-white p-6 rounded-lg shadow-md min-h-[500px] dark:bg-gray-800">
+            <!-- FILTERS GRID -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 items-start">
+                <!-- 1. Data Profiles -->
+                <div class="p-4 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+                    <div class="flex justify-between items-center mb-2 border-b pb-2 dark:border-gray-500">
+                        <label class="font-bold text-gray-700 dark:text-gray-200">Data Profiles</label>
+                        <div class="text-xs space-x-2">
+                            <button onclick="window.toggleAllProfiles(true)"
+                                class="text-blue-600 hover:underline dark:text-blue-400">
+                                Select All
+                            </button>
+                            <span class="text-gray-300 dark:text-gray-500">|</span>
+                            <button onclick="window.toggleAllProfiles(false)"
+                                class="text-blue-600 hover:underline dark:text-blue-400">
+                                Deselect All
                             </button>
                         </div>
                     </div>
-
-                    <!-- Canvas Wrapper: Sidebar + Scrollable Canvas -->
-                    <div
-                        id="timeline-wrapper"
-                        class="flex border rounded-lg bg-gray-50 dark:bg-gray-900 dark:border-gray-600 h-[600px] relative"
-                    >
-                        <!-- 1. Sticky Sidebar for Journal Names -->
-                        <div
-                            id="timeline-sidebar"
-                            class="w-40 flex-shrink-0 overflow-hidden border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-10"
-                        >
-                            <!-- Header Spacer -->
-                            <!-- Fix: Updated colors to match Canvas header (Gray-100 / Gray-800) -->
-                            <div
-                                class="h-8 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800"
-                            ></div>
-                            <!-- Journal Names Container -->
-                            <div
-                                id="journal-names-list"
-                                class="flex flex-col"
-                            ></div>
+                    <div id="filter-controls" class="flex flex-wrap gap-x-4 gap-y-2 mt-2">
+                        {% for profile in filter_profiles %}
+                        <div class="flex items-center">
+                            <input type="checkbox" id="{{ profile }}" name="{{ profile }}" value="{{ profile }}" checked
+                                class="mr-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer dark:bg-gray-600 dark:border-gray-500" />
+                            <label for="{{ profile }}"
+                                class="text-gray-600 cursor-pointer flex items-center text-sm dark:text-gray-300">
+                                <span class="color-dot w-3 h-3 rounded-full mr-1 inline-block bg-gray-400"
+                                    data-profile="{{ profile }}"></span>
+                                {{ profile }}
+                            </label>
                         </div>
+                        {% endfor %}
+                    </div>
+                </div>
 
-                        <!-- 2. Scrollable Canvas Container -->
-                        <div
-                            id="timeline-scroll-area"
-                            class="flex-1 overflow-auto relative cursor-crosshair"
-                        >
-                            <!-- The Canvas -->
-                            <canvas id="timeline-canvas"></canvas>
-
-                            <!-- Floating Tooltip -->
-                            <div
-                                id="canvas-tooltip"
-                                class="absolute hidden z-50 p-2 bg-gray-800 text-white text-xs rounded shadow-lg max-w-xs pointer-events-none"
-                            ></div>
+                <!-- 2. Journal Filter -->
+                <div
+                    class="p-4 border rounded-lg bg-gray-50 flex flex-col max-h-[500px] dark:bg-gray-700 dark:border-gray-600">
+                    <div class="flex justify-between items-center mb-2 border-b pb-2 dark:border-gray-500">
+                        <label class="font-bold text-gray-700 dark:text-gray-200">Journals Displayed</label>
+                        <div class="text-xs space-x-2">
+                            <button onclick="window.toggleAllJournals(true)"
+                                class="text-blue-600 hover:underline dark:text-blue-400">
+                                Select All
+                            </button>
+                            <span class="text-gray-300 dark:text-gray-500">|</span>
+                            <button onclick="window.toggleAllJournals(false)"
+                                class="text-blue-600 hover:underline dark:text-blue-400">
+                                Deselect All
+                            </button>
+                            <span class="text-gray-300 dark:text-gray-500">|</span>
+                            <span class="text-gray-500 dark:text-gray-400 font-semibold">Select:</span>
+                            <button onclick="window.selectJournalsWithData('AND')"
+                                class="text-blue-600 hover:underline dark:text-blue-400"
+                                title="Exclusive: Selects journals where ALL active profiles are present">
+                                Matches (AND)
+                            </button>
+                            <span class="text-gray-300 dark:text-gray-500">/</span>
+                            <button onclick="window.selectJournalsWithData('OR')"
+                                class="text-blue-600 hover:underline dark:text-blue-400"
+                                title="Inclusive: Selects journals where ANY active profile is present">
+                                Matches (OR)
+                            </button>
                         </div>
+                    </div>
+                    <div id="journal-controls"
+                        class="overflow-y-auto flex-1 grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-0.5 content-start pr-2">
+                        {% for name, _ in
+                        data.results|dictsort(case_sensitive=false) %}
+                        <div class="flex items-center">
+                            <input type="checkbox" id="j-{{ name }}" name="journal_filter" value="{{ name }}" checked
+                                class="mr-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer journal-checkbox dark:bg-gray-600 dark:border-gray-500" />
+                            <label for="j-{{ name }}"
+                                class="text-sm text-gray-600 cursor-pointer truncate dark:text-gray-300"
+                                title="{{ name }}">
+                                {{ name }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 1: TABLE -->
+            <div id="view-table">
+                <div class="overflow-x-auto">
+                    <table id="journals-table" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                                    Journal Name
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                                    Total Image Count
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                                    Complete data
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                                    Incomplete/Missing
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                                    Total Missing*
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                                    Consistency*
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                                    Progress
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                                    Details
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                            {% for name, journal in data.results|dictsort %}
+                            <tr class="journal-row dark:hover:bg-gray-750" data-journal-name="{{ name }}">
+                                <td
+                                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                    {{ name }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    {{
+                                    "{:,}".format(journal.summary.total_images)
+                                    }}
+                                </td>
+
+                                <!-- Complete Data -->
+                                <td
+                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 align-top">
+                                    <div class="flex flex-col gap-2 items-start">
+                                        {% set texts_group =
+                                        journal.summary.profile_counts.texts_group
+                                        %} {% if
+                                        texts_group.missing_coverage == 0
+                                        and journal.summary.total_images > 0
+                                        %}
+                                        <div>
+                                            <span
+                                                class="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">✅
+                                                Texts</span>
+                                        </div>
+                                        {% endif %} {% for profile, count in
+                                        journal.summary.profile_counts|dictsort
+                                        %} {% if profile != 'texts_group'
+                                        and count == 0 and
+                                        journal.summary.total_images > 0 %}
+                                        <span
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">✅
+                                            {{ profile }}</span>
+                                        {% endif %} {% endfor %}
+                                    </div>
+                                </td>
+
+                                <!-- Incomplete Data -->
+                                <td
+                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 align-top">
+                                    <div class="flex flex-col gap-3 items-start">
+                                        {% set texts_group =
+                                        journal.summary.profile_counts.texts_group
+                                        %} {% if
+                                        texts_group.missing_coverage > 0 %}
+                                        <div>
+                                            <span
+                                                class="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">🟡
+                                                Texts: {{
+                                                "{:,}".format(texts_group.missing_coverage)
+                                                }} missing</span>
+                                        </div>
+                                        {% endif %} {% for profile, count in
+                                        journal.summary.profile_counts|dictsort
+                                        if profile != 'texts_group' and
+                                        count > 0 %}
+                                        <span
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">🟡
+                                            {{ profile }}: {{
+                                            "{:,}".format(count) }}
+                                            missing</span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+
+                                <td
+                                    class="total-missing px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 font-semibold align-top">
+                                </td>
+                                <td
+                                    class="consistency-percent px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 font-semibold align-top">
+                                </td>
+                                <td
+                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 align-top">
+                                    <div class="ring-container" style="width: 120px; height: 120px"></div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium align-top">
+                                    <a href="{{ url_for('journal_detail', journal_name=name) }}"
+                                        class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">View
+                                        Details</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- VIEW 2: CANVAS TIMELINE (Hybrid Layout) -->
+            <div id="view-timeline" class="hidden">
+                <div class="mb-4">
+                    <h3 class="text-xl font-bold text-gray-700 mb-2 dark:text-gray-200">
+                        Multi-Journal Timeline
+                    </h3>
+                    <p class="text-sm text-gray-500 mb-4 dark:text-gray-400">
+                        Drag across the years in the header row to calculate
+                        totals.
+                    </p>
+                    <!-- Color Legend -->
+                    <div class="flex flex-wrap items-center gap-4 text-xs text-gray-600 mb-4 dark:text-gray-400">
+                        <div class="flex items-center">
+                            <span
+                                class="w-3 h-3 border mr-1 bg-gray-200 border-gray-400 dark:bg-gray-800 dark:border-gray-600"></span>
+                            Missing Year
+                        </div>
+                        <!-- Removed "Empty Folder" to avoid user confusion -->
+                        <div class="flex items-center">
+                            <span class="w-3 h-3 bg-gray-600 mr-1 dark:bg-gray-500"></span>
+                            No Presence of Selected Profile(s)
+                        </div>
+                        <div class="flex items-center">
+                            <div class="flex mr-1 space-x-0.5">
+                                <span class="w-3 h-3 rounded-full bg-[#10b981]"></span>
+                                <span class="w-3 h-3 rounded-full bg-[#3b82f6]"></span>
+                                <span class="w-3 h-3 rounded-full bg-[#f59e0b]"></span>
+                                <span class="w-3 h-3 rounded-full bg-[#8b5cf6]"></span>
+                            </div>
+                            <span class="ml-1">Profile Colors</span>
+                        </div>
+                        <!-- Range Priority Toggle -->
+                        <div class="flex items-center ml-4">
+                            <input type="checkbox" id="prioritize-ranges"
+                                class="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer dark:bg-gray-600 dark:border-gray-500"
+                                onchange="updateYearMapPriorities()">
+                            <label for="prioritize-ranges"
+                                class="text-xs text-gray-600 dark:text-gray-400 cursor-pointer select-none">Prioritize
+                                Ranges</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selection Stats Panel -->
+                <div id="selection-stats"
+                    class="hidden p-4 bg-blue-50 border border-blue-200 rounded-lg flex justify-between items-center shadow-sm dark:bg-gray-700 dark:border-gray-600">
+                    <div>
+                        <span class="text-blue-800 font-bold text-lg mr-2 dark:text-blue-300">Selected Range:</span>
+                        <input type="text" id="selection-range-input"
+                            class="bg-transparent border-b-2 border-blue-300 text-blue-900 font-mono text-lg focus:outline-none focus:border-blue-600 w-40 text-center dark:text-blue-100 dark:border-blue-500"
+                            placeholder="YYYY - YYYY" />
+                    </div>
+                    <div class="text-right">
+                        <span class="text-gray-600 text-sm uppercase tracking-wide dark:text-gray-400">Total Pages
+                            (Filtered)</span><br />
+                        <span id="selection-total-count"
+                            class="text-3xl font-bold text-blue-600 dark:text-blue-400">0</span>
+                    </div>
+                    <button onclick="window.clearTimelineSelection()"
+                        class="text-sm text-gray-500 hover:text-red-500 underline ml-4 dark:text-gray-400 dark:hover:text-red-400">
+                        Clear
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas Wrapper: Sidebar + Scrollable Canvas -->
+            <div id="timeline-wrapper"
+                class="flex border rounded-lg bg-gray-50 dark:bg-gray-900 dark:border-gray-600 h-[600px] relative">
+                <!-- 1. Sticky Sidebar for Journal Names -->
+                <div id="timeline-sidebar"
+                    class="w-40 flex-shrink-0 overflow-hidden border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-10">
+                    <!-- Header Spacer -->
+                    <!-- Fix: Updated colors to match Canvas header (Gray-100 / Gray-800) -->
+                    <div class="h-8 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
+                    </div>
+                    <!-- Journal Names Container -->
+                    <div id="journal-names-list" class="flex flex-col"></div>
+                </div>
+
+                <!-- 2. Scrollable Canvas Container -->
+                <div id="timeline-scroll-area" class="flex-1 overflow-auto relative cursor-crosshair">
+                    <!-- The Canvas -->
+                    <canvas id="timeline-canvas"></canvas>
+
+                    <!-- Floating Tooltip -->
+                    <div id="canvas-tooltip"
+                        class="absolute hidden z-50 p-2 bg-gray-800 text-white text-xs rounded shadow-lg max-w-xs pointer-events-none">
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+    </div>
 
-        <script>
-            // --- Dark Mode Logic ---
-            function toggleDarkMode() {
-                if (document.documentElement.classList.contains("dark")) {
-                    document.documentElement.classList.remove("dark");
-                    localStorage.setItem("theme", "light");
-                } else {
-                    document.documentElement.classList.add("dark");
-                    localStorage.setItem("theme", "dark");
-                }
-                updateIcons();
+    <script>
+        // --- Dark Mode Logic ---
+        function toggleDarkMode() {
+            if (document.documentElement.classList.contains("dark")) {
+                document.documentElement.classList.remove("dark");
+                localStorage.setItem("theme", "light");
+            } else {
+                document.documentElement.classList.add("dark");
+                localStorage.setItem("theme", "dark");
+            }
+            updateIcons();
 
-                // Redraw canvas with new colors
+            // Redraw canvas with new colors
+            const evt = new Event("triggerTimelineRender");
+            document.dispatchEvent(evt);
+        }
+
+        function updateIcons() {
+            const darkIcon = document.getElementById(
+                "theme-toggle-dark-icon",
+            );
+            const lightIcon = document.getElementById(
+                "theme-toggle-light-icon",
+            );
+            if (document.documentElement.classList.contains("dark")) {
+                darkIcon.classList.remove("hidden");
+                lightIcon.classList.add("hidden");
+            } else {
+                lightIcon.classList.remove("hidden");
+                darkIcon.classList.add("hidden");
+            }
+        }
+
+        // Init Theme
+        if (
+            localStorage.getItem("theme") === "dark" ||
+            (!("theme" in localStorage) &&
+                window.matchMedia("(prefers-color-scheme: dark)").matches)
+        ) {
+            document.documentElement.classList.add("dark");
+        } else {
+            document.documentElement.classList.remove("dark");
+        }
+
+        // --- GLOBAL FUNCTIONS ---
+        window.switchTab = function (tabName) {
+            const tableBtn = document.getElementById("tab-btn-table");
+            const timelineBtn = document.getElementById("tab-btn-timeline");
+            const tableView = document.getElementById("view-table");
+            const timelineView = document.getElementById("view-timeline");
+
+            const activeClasses = [
+                "text-blue-600",
+                "border-blue-600",
+                "active",
+                "dark:text-blue-400",
+                "dark:border-blue-400",
+            ];
+            const inactiveClasses = [
+                "text-gray-500",
+                "border-transparent",
+                "hover:text-gray-600",
+                "hover:border-gray-300",
+                "dark:text-gray-400",
+                "dark:hover:text-gray-300",
+            ];
+
+            if (tabName === "table") {
+                tableView.classList.remove("hidden");
+                timelineView.classList.add("hidden");
+
+                // Apply Active to Table Btn
+                tableBtn.classList.add(...activeClasses);
+                tableBtn.classList.remove(...inactiveClasses);
+
+                // Apply Inactive to Timeline Btn
+                timelineBtn.classList.remove(...activeClasses);
+                timelineBtn.classList.add(...inactiveClasses);
+            } else {
+                tableView.classList.add("hidden");
+                timelineView.classList.remove("hidden");
+
+                // Apply Inactive to Table Btn
+                tableBtn.classList.remove(...activeClasses);
+                tableBtn.classList.add(...inactiveClasses);
+
+                // Apply Active to Timeline Btn
+                timelineBtn.classList.add(...activeClasses);
+                timelineBtn.classList.remove(...inactiveClasses);
+
                 const evt = new Event("triggerTimelineRender");
                 document.dispatchEvent(evt);
             }
+        }
 
-            function updateIcons() {
-                const darkIcon = document.getElementById(
-                    "theme-toggle-dark-icon",
-                );
-                const lightIcon = document.getElementById(
-                    "theme-toggle-light-icon",
-                );
-                if (document.documentElement.classList.contains("dark")) {
-                    darkIcon.classList.remove("hidden");
-                    lightIcon.classList.add("hidden");
-                } else {
-                    lightIcon.classList.remove("hidden");
-                    darkIcon.classList.add("hidden");
+        // Placeholders
+        window.toggleAllJournals = function () { };
+        window.clearTimelineSelection = function () { };
+        window.toggleAllProfiles = function () { };
+
+        document.addEventListener("DOMContentLoaded", function () {
+            updateIcons();
+
+            const controls = document.getElementById("filter-controls");
+            const journalControls =
+                document.getElementById("journal-controls");
+            const tableRows = document.querySelectorAll(".journal-row");
+            const storageKey = "dashboardProfileFilters";
+            const rangeInput = document.getElementById(
+                "selection-range-input",
+            );
+
+            // Dataset Loading
+            let DATASET_RESULTS = {};
+            try {
+                const scriptTag = document.getElementById("full-dataset");
+                if (scriptTag)
+                    DATASET_RESULTS = JSON.parse(scriptTag.textContent);
+            } catch (e) {
+                console.error("JSON Parse Error", e);
+            }
+
+            const PROFILE_COLORS = {
+                Texts: "#10b981",
+                xml: "#3b82f6",
+                altoxml: "#f59e0b",
+                "metadata-v1": "#8b5cf6",
+                "metadata-v2": "#ec4899",
+                avif: "#f9ec16",
+                default: "#6b7280",
+            };
+
+            document.querySelectorAll(".color-dot").forEach((dot) => {
+                const profile = dot.dataset.profile;
+                const color =
+                    PROFILE_COLORS[profile] ||
+                    PROFILE_COLORS[profile.split("-")[0]] ||
+                    PROFILE_COLORS["default"];
+                dot.style.backgroundColor = color;
+            });
+
+            function toCamelCase(str) {
+                return str
+                    .toLowerCase()
+                    .replace(/([-_][a-z0-9])/g, (group) =>
+                        group
+                            .toUpperCase()
+                            .replace("-", "")
+                            .replace("_", ""),
+                    );
+            }
+
+            function getSelectedProfiles() {
+                const selected = new Set();
+                if (controls)
+                    controls
+                        .querySelectorAll('input[type="checkbox"]:checked')
+                        .forEach((cb) => selected.add(cb.value));
+                return Array.from(selected);
+            }
+
+            function getSelectedJournals() {
+                const selected = new Set();
+                if (journalControls)
+                    journalControls
+                        .querySelectorAll('input[type="checkbox"]:checked')
+                        .forEach((cb) => selected.add(cb.value));
+                return selected;
+            }
+
+            function saveFilters() {
+                const selected = getSelectedProfiles();
+                localStorage.setItem(storageKey, JSON.stringify(selected));
+            }
+
+            function loadFilters() {
+                const saved = localStorage.getItem(storageKey);
+                if (saved) {
+                    const selectedProfiles = new Set(JSON.parse(saved));
+                    controls
+                        .querySelectorAll('input[type="checkbox"]')
+                        .forEach((cb) => {
+                            cb.checked = selectedProfiles.has(cb.value);
+                        });
                 }
             }
 
-            // Init Theme
-            if (
-                localStorage.getItem("theme") === "dark" ||
-                (!("theme" in localStorage) &&
-                    window.matchMedia("(prefers-color-scheme: dark)").matches)
-            ) {
-                document.documentElement.classList.add("dark");
-            } else {
-                document.documentElement.classList.remove("dark");
+            // Initialize Activity Rings (Shared SVG Logic) - Defined HERE to be available
+            function renderActivityRings(container, ringData) {
+                container.innerHTML = "";
+                const size = 120;
+                const strokeWidth = 6;
+                const center = size / 2;
+                const svg = document.createElementNS(
+                    "http://www.w3.org/2000/svg",
+                    "svg",
+                );
+                svg.setAttribute("width", size);
+                svg.setAttribute("height", size);
+                svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+
+                const maxRadius = size / 2 - strokeWidth / 2;
+                const gap = 3;
+
+                ringData.forEach((ring, index) => {
+                    const radius =
+                        maxRadius - index * (strokeWidth + gap);
+                    if (radius <= 0) return;
+                    const circumference = 2 * Math.PI * radius;
+                    const offset =
+                        circumference -
+                        (ring.percent / 100) * circumference;
+                    const color =
+                        PROFILE_COLORS[ring.profile] ||
+                        PROFILE_COLORS[ring.profile.split("-")[0]] ||
+                        PROFILE_COLORS["default"];
+
+                    // Background
+                    const bgCircle = document.createElementNS(
+                        "http://www.w3.org/2000/svg",
+                        "circle",
+                    );
+                    bgCircle.setAttribute("cx", center);
+                    bgCircle.setAttribute("cy", center);
+                    bgCircle.setAttribute("r", radius);
+                    bgCircle.setAttribute("stroke-width", strokeWidth);
+                    bgCircle.setAttribute("class", "ring-bg");
+                    bgCircle.style.fill = "none";
+                    svg.appendChild(bgCircle);
+
+                    // Progress
+                    const progressCircle = document.createElementNS(
+                        "http://www.w3.org/2000/svg",
+                        "circle",
+                    );
+                    progressCircle.setAttribute("cx", center);
+                    progressCircle.setAttribute("cy", center);
+                    progressCircle.setAttribute("r", radius);
+                    progressCircle.setAttribute("stroke", color);
+                    progressCircle.setAttribute(
+                        "stroke-width",
+                        strokeWidth,
+                    );
+                    progressCircle.setAttribute(
+                        "stroke-dasharray",
+                        circumference,
+                    );
+                    progressCircle.setAttribute(
+                        "stroke-dashoffset",
+                        offset,
+                    );
+                    progressCircle.setAttribute("class", "ring-progress");
+                    progressCircle.style.fill = "none";
+                    progressCircle.style.stroke = color;
+                    svg.appendChild(progressCircle);
+                });
+                container.appendChild(svg);
             }
 
-            // --- GLOBAL FUNCTIONS ---
+            // --- GLOBAL OVERRIDES ---
+            window.toggleAllProfiles = function (checked) {
+                if (controls) {
+                    controls
+                        .querySelectorAll('input[type="checkbox"]')
+                        .forEach((cb) => (cb.checked = checked));
+                    saveFilters();
+                    updateTable();
+                    if (
+                        !document
+                            .getElementById("view-timeline")
+                            .classList.contains("hidden")
+                    ) {
+                        // Trigger render manually
+                        const evt = new Event("triggerTimelineRender");
+                        document.dispatchEvent(evt);
+                    }
+                }
+            };
+
+            window.toggleAllJournals = function (checked) {
+                if (journalControls) {
+                    journalControls
+                        .querySelectorAll('input[type="checkbox"]')
+                        .forEach((cb) => (cb.checked = checked));
+                    updateTable();
+                    if (
+                        !document
+                            .getElementById("view-timeline")
+                            .classList.contains("hidden")
+                    ) {
+                        renderTimeline();
+                        // Fix: Update stats when bulk toggling
+                        updateSelectionStats();
+                    }
+                }
+            };
+
+            // New Function: Select journals that have data for selected profiles
+            // mode = 'AND' (Exclusive) or 'OR' (Inclusive)
+            window.selectJournalsWithData = function (mode = 'AND') {
+                console.clear();
+                console.log(`--- Starting Select Matches (${mode} Mode) ---`);
+                const activeProfiles = getSelectedProfiles();
+                console.log("Active Profiles:", activeProfiles);
+
+                const jControls = document.getElementById("journal-controls");
+                if (!jControls) return;
+
+                const journalCheckboxes = jControls.querySelectorAll(
+                    'input[type="checkbox"]',
+                );
+
+                let matchedCount = 0;
+
+                journalCheckboxes.forEach((cb) => {
+                    const journalName = cb.value;
+                    const data = DATASET_RESULTS[journalName];
+
+                    if (!data) {
+                        cb.checked = false;
+                        return;
+                    }
+
+                    // Force integer conversion for safety
+                    const totalImages = parseInt(data.summary.total_images || 0, 10);
+
+                    // LOGIC BRANCHING
+                    // AND: Assume True, fail if any missing.
+                    // OR: Assume False, succeed if any present.
+                    let hasData = (mode === 'AND');
+
+                    let logMsg = `Checking ${journalName} (Total: ${totalImages}): `;
+
+                    if (totalImages > 0) {
+                        if (activeProfiles.length === 0) {
+                            hasData = false;
+                            logMsg += "No active profiles selected.";
+                        } else {
+                            for (const profile of activeProfiles) {
+                                let missingRaw;
+
+                                if (profile === "Texts") {
+                                    missingRaw = data.summary.profile_counts?.texts_group?.missing_coverage;
+                                } else {
+                                    missingRaw = data.summary.profile_counts?.[profile];
+                                }
+
+                                // Robust undefined check
+                                let missing = totalImages;
+                                if (missingRaw !== undefined && missingRaw !== null) {
+                                    missing = parseInt(missingRaw, 10);
+                                }
+
+                                const present = totalImages - missing;
+                                logMsg += `[${profile}: present=${present}] `;
+
+                                if (mode === 'AND') {
+                                    // EXCLUSIVE (AND): If ANY selected profile has 0 files, fail.
+                                    if (present <= 0) {
+                                        hasData = false;
+                                        logMsg += `-> FAILED (Zero data for ${profile})`;
+                                        break;
+                                    }
+                                } else {
+                                    // INCLUSIVE (OR): If ANY selected profile has files, succeed.
+                                    if (present > 0) {
+                                        hasData = true;
+                                        logMsg += `-> MATCHED (Found data for ${profile})`;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        hasData = false;
+                        logMsg += "Skipped (0 Images)";
+                    }
+
+                    if (hasData) {
+                        if (mode === 'AND') logMsg += "-> MATCHED (All profiles present)";
+                        matchedCount++;
+                    }
+
+                    // console.log(logMsg); // Uncomment for detailed debug
+                    cb.checked = hasData;
+                });
+
+                console.log(`Select Matches Complete. Selected ${matchedCount} journals.`);
+
+                // Force UI Refresh
+                updateTable();
+                if (!document.getElementById("view-timeline").classList.contains("hidden")) {
+                    renderTimeline();
+                    updateSelectionStats();
+                }
+            };
+
+            document.addEventListener(
+                "triggerTimelineRender",
+                function () {
+                    if (
+                        !document
+                            .getElementById("view-timeline")
+                            .classList.contains("hidden")
+                    ) {
+                        drawCanvas();
+                    }
+                },
+            );
+
+            // --- SHARED CALCULATION LOGIC (Mitigate Logic Drift) ---
+            function calculateConsistency(journalData, activeProfiles) {
+                // journalData = { summary: { total_images: X, profile_counts: {...} } }
+                // activeProfiles = ['Texts', 'xml', 'metadata-v1']
+
+                const totalImages = journalData.summary.total_images || 0;
+                let totalMissing = 0;
+                const ringData = [];
+
+                activeProfiles.forEach((profile) => {
+                    let missingCount = 0;
+                    if (profile === "Texts") {
+                        missingCount =
+                            journalData.summary.profile_counts.texts_group
+                                .missing_coverage || 0;
+                    } else {
+                        missingCount =
+                            journalData.summary.profile_counts[profile] ||
+                            0;
+                    }
+                    totalMissing += missingCount;
+
+                    let percent = 0;
+                    if (totalImages > 0) {
+                        percent =
+                            ((totalImages - missingCount) / totalImages) *
+                            100;
+                    } else if (totalImages === 0 && missingCount === 0) {
+                        percent = 100;
+                    }
+                    ringData.push({
+                        profile: profile,
+                        percent: Math.max(0, percent),
+                    });
+                });
+
+                const totalPossible = totalImages * activeProfiles.length;
+                let overallConsistency = 100.0;
+                if (totalPossible > 0) {
+                    overallConsistency = Math.max(
+                        0,
+                        ((totalPossible - totalMissing) / totalPossible) *
+                        100,
+                    );
+                } else if (totalImages > 0) {
+                    overallConsistency = 0;
+                }
+
+                return {
+                    totalMissing,
+                    overallConsistency,
+                    ringData,
+                };
+            }
+
+            // --- TABLE UPDATE LOGIC ---
+            function updateTable() {
+                try {
+                    const activeProfiles = getSelectedProfiles();
+                    const selectedJournals = getSelectedJournals();
+
+                    tableRows.forEach((row) => {
+                        const journalName = row.dataset.journalName;
+
+                        // Filter Row Visibility
+                        if (selectedJournals.has(journalName)) {
+                            row.style.display = "";
+                        } else {
+                            row.style.display = "none";
+                            return;
+                        }
+
+                        // Use SHARED LOGIC for math
+                        const journalData = DATASET_RESULTS[journalName];
+                        if (!journalData) return;
+
+                        const metrics = calculateConsistency(
+                            journalData,
+                            activeProfiles,
+                        );
+
+                        // Update DOM
+                        const missingEl =
+                            row.querySelector(".total-missing");
+                        if (missingEl)
+                            missingEl.textContent =
+                                metrics.totalMissing.toLocaleString();
+
+                        const consistEl = row.querySelector(
+                            ".consistency-percent",
+                        );
+                        if (consistEl)
+                            consistEl.textContent = `${metrics.overallConsistency.toFixed(2)}%`;
+
+                        const ringContainer =
+                            row.querySelector(".ring-container");
+                        if (ringContainer) {
+                            renderActivityRings(
+                                ringContainer,
+                                metrics.ringData,
+                            );
+                        }
+                    });
+                } catch (e) {
+                    console.error("Table Update Error", e);
+                }
+            }
+
+            // --- CANVAS TIMELINE LOGIC ---
+            const canvas = document.getElementById("timeline-canvas");
+            const ctx = canvas ? canvas.getContext("2d") : null;
+            const scrollArea = document.getElementById(
+                "timeline-scroll-area",
+            );
+            const sidebar = document.getElementById("timeline-sidebar");
+            const sidebarList =
+                document.getElementById("journal-names-list");
+            const tooltip = document.getElementById("canvas-tooltip");
+
+            let canvasState = {
+                cellWidth: 24,
+                cellHeight: 32, // h-8
+                headerHeight: 32, // h-8
+                journals: [],
+                minYear: 0,
+                maxYear: 0,
+                isDragging: false,
+                selectionStart: null,
+                selectionEnd: null,
+            };
+
+            // Calculate Date Range & Build Year Map
+            let minYear = 3000;
+            let maxYear = 1000;
+            // Map: JournalName -> { YearInt: DataKeyString }
+            // DataKeyString can be "1912" or "1912-1914"
+            const journalYearMaps = {};
+
+            try {
+                Object.keys(DATASET_RESULTS).forEach((name) => {
+                    journalYearMaps[name] = {};
+                    const journalYears = DATASET_RESULTS[name].years;
+
+                    // First pass: Identify min/max and populate map
+                    Object.keys(journalYears).forEach((yStr) => {
+                        // Parse range
+                        const parts = yStr.split("-");
+                        const start = parseInt(parts[0]);
+                        const end = parts.length > 1 ? parseInt(parts[1]) : start;
+
+                        if (start < minYear) minYear = start;
+                        if (end > maxYear) maxYear = end;
+
+                        // Populate Map
+                        for (let y = start; y <= end; y++) {
+                            if (!journalYearMaps[name][y]) {
+                                journalYearMaps[name][y] = [];
+                            }
+                            journalYearMaps[name][y].push(yStr);
+                        }
+                    });
+
+                    // Sort keys for each year: Exact match first by default, or ranges first if prioritized
+                    Object.keys(journalYearMaps[name]).forEach(y => {
+                        journalYearMaps[name][y].sort((a, b) => {
+                            const aIsRange = a.includes("-");
+                            const bIsRange = b.includes("-");
+                            if (aIsRange === bIsRange) return 0;
+                            // Default: Range comes last (1)
+                            return aIsRange ? 1 : -1;
+                        });
+                    });
+                });
+
+                // New Function: Update priorities based on toggle
+                window.updateYearMapPriorities = function () {
+                    const prioritizeRanges = document.getElementById("prioritize-ranges").checked;
+
+                    Object.keys(journalYearMaps).forEach(name => {
+                        const yearMap = journalYearMaps[name];
+                        Object.keys(yearMap).forEach(y => {
+                            yearMap[y].sort((a, b) => {
+                                const aIsRange = a.includes("-");
+                                const bIsRange = b.includes("-");
+                                if (aIsRange === bIsRange) return 0;
+
+                                if (prioritizeRanges) {
+                                    // Ranges first: Range (-1), Single (1)
+                                    return aIsRange ? -1 : 1;
+                                } else {
+                                    // Single first: Range (1), Single (-1)
+                                    return aIsRange ? 1 : -1;
+                                }
+                            });
+                        });
+                    });
+
+                    drawCanvas();
+                };
+
+                if (minYear > maxYear) {
+                    minYear = 1900;
+                    maxYear = 2000;
+                }
+                canvasState.minYear = minYear;
+                canvasState.maxYear = maxYear;
+            } catch (e) {
+                console.error("Error calculating date ranges", e);
+            }
+
+            function renderTimeline() {
+                if (!ctx) return;
+
+                // 1. Prepare Data
+                const selectedJournalSet = getSelectedJournals();
+                const visibleJournals = Array.from(
+                    selectedJournalSet,
+                ).sort();
+                canvasState.journals = visibleJournals;
+
+                // 2. Populate Sidebar (DOM for text searchability/crispness)
+                sidebarList.innerHTML = "";
+                visibleJournals.forEach((name) => {
+                    const div = document.createElement("div");
+                    div.className =
+                        "h-8 flex items-center justify-end pr-2 text-xs font-bold text-gray-700 dark:text-gray-300 border-b border-gray-100 dark:border-gray-600 truncate";
+                    div.textContent = name;
+                    div.title = name;
+                    sidebarList.appendChild(div);
+                });
+
+                // 3. Resize Canvas
+                const totalYears =
+                    canvasState.maxYear - canvasState.minYear + 1;
+                const totalWidth = totalYears * canvasState.cellWidth;
+                const totalHeight =
+                    canvasState.headerHeight +
+                    visibleJournals.length * canvasState.cellHeight;
+
+                // High DPI scaling
+                const dpr = window.devicePixelRatio || 1;
+                canvas.style.width = `${totalWidth}px`;
+                canvas.style.height = `${totalHeight}px`;
+                canvas.width = totalWidth * dpr;
+                canvas.height = totalHeight * dpr;
+                ctx.scale(dpr, dpr);
+
+                drawCanvas();
+            }
+
+            function drawCanvas() {
+                if (!ctx) return;
+                const width =
+                    (canvasState.maxYear - canvasState.minYear + 1) *
+                    canvasState.cellWidth;
+                const height =
+                    canvasState.headerHeight +
+                    canvasState.journals.length * canvasState.cellHeight;
+                const isDark =
+                    document.documentElement.classList.contains("dark");
+                const activeProfiles = getSelectedProfiles();
+
+                // Colors
+                const COLORS = {
+                    bg: isDark ? "#111827" : "#f9fafb", // Gray 900 / Gray 50
+                    headerBg: isDark ? "#1f2937" : "#f3f4f6", // Gray 800 / Gray 100
+                    border: isDark ? "#4b5563" : "#e5e7eb",
+                    text: isDark ? "#9ca3af" : "#6b7280",
+                    selection: isDark
+                        ? "rgba(59, 130, 246, 0.3)"
+                        : "rgba(191, 219, 254, 0.5)",
+                    missingYear: isDark ? "#1f2937" : "#e5e7eb", // Gray 800 / Gray 200
+                    emptyData: isDark ? "#374151" : "#d1d5db", // Gray 700 / Gray 300
+                    indicator: isDark ? "#ffffff" : "#000000", // Overlap indicator
+                };
+
+                ctx.clearRect(0, 0, width, height);
+
+                // --- DRAW GRID & DATA ---
+                canvasState.journals.forEach((journalName, rowIndex) => {
+                    const y =
+                        canvasState.headerHeight +
+                        rowIndex * canvasState.cellHeight;
+                    const journalData = DATASET_RESULTS[journalName];
+                    const yearMap = journalYearMaps[journalName] || {};
+
+                    // Bottom border for row
+                    ctx.fillStyle = COLORS.border;
+                    ctx.fillRect(0, y + canvasState.cellHeight - 1, width, 1);
+
+                    for (
+                        let year = canvasState.minYear;
+                        year <= canvasState.maxYear;
+                        year++
+                    ) {
+                        const x =
+                            (year - canvasState.minYear) *
+                            canvasState.cellWidth;
+
+                        // Get keys for this year
+                        const keys = yearMap[year];
+                        // Use the first key (primary) for the main visualization
+                        const primaryKey = keys ? keys[0] : null;
+                        const yearData = primaryKey ? journalData.years[primaryKey] : null;
+
+                        // Background Cell
+                        if (!yearData) {
+                            // Missing Year
+                            ctx.fillStyle = COLORS.missingYear;
+                            ctx.fillRect(
+                                x,
+                                y,
+                                canvasState.cellWidth - 1,
+                                canvasState.cellHeight - 1,
+                            );
+                        } else if (yearData.summary.images === 0) {
+                            // Empty Data
+                            ctx.fillStyle = COLORS.emptyData;
+                            ctx.fillRect(
+                                x,
+                                y,
+                                canvasState.cellWidth - 1,
+                                canvasState.cellHeight - 1,
+                            );
+                        } else {
+                            // Draw Stripes
+                            const stripeW =
+                                canvasState.cellWidth /
+                                activeProfiles.length;
+
+                            activeProfiles.forEach((profile, pIndex) => {
+                                let missing = 0;
+                                if (profile === "Texts") {
+                                    missing =
+                                        yearData.summary.profile_counts
+                                            .texts_group.missing_coverage ||
+                                        0;
+                                } else {
+                                    missing =
+                                        yearData.summary.profile_counts[
+                                        profile
+                                        ] || 0;
+                                }
+                                const total = yearData.summary.images;
+                                let percent = 0;
+                                if (total > 0)
+                                    percent = (total - missing) / total;
+
+                                if (percent === 0) {
+                                    ctx.fillStyle = "#4b5563"; // Dark gray for 0%
+                                } else {
+                                    const baseColor =
+                                        PROFILE_COLORS[profile] ||
+                                        PROFILE_COLORS["default"];
+                                    ctx.fillStyle = baseColor;
+                                    ctx.globalAlpha = Math.max(
+                                        0.3,
+                                        percent,
+                                    );
+                                }
+
+                                ctx.fillRect(
+                                    x + pIndex * stripeW,
+                                    y,
+                                    stripeW,
+                                    canvasState.cellHeight - 1,
+                                );
+                            });
+                            ctx.globalAlpha = 1.0;
+
+                            // Right border
+                            ctx.fillStyle = COLORS.bg;
+                            ctx.fillRect(
+                                x + canvasState.cellWidth - 1,
+                                y,
+                                1,
+                                canvasState.cellHeight - 1,
+                            );
+
+                            // --- OVERLAP INDICATOR ---
+                            // If there are multiple keys, draw a small dot
+                            if (keys && keys.length > 1) {
+                                ctx.fillStyle = COLORS.indicator;
+                                ctx.beginPath();
+                                ctx.arc(
+                                    x + canvasState.cellWidth / 2,
+                                    y + canvasState.cellHeight / 2,
+                                    2, // Radius
+                                    0,
+                                    2 * Math.PI
+                                );
+                                ctx.fill();
+                            }
+                        }
+                    }
+                });
+
+                // --- DRAW HEADER ---
+                ctx.fillStyle = COLORS.headerBg;
+                ctx.fillRect(0, 0, width, canvasState.headerHeight);
+                // Header bottom border
+                ctx.fillStyle = COLORS.border;
+                ctx.fillRect(
+                    0,
+                    canvasState.headerHeight - 1,
+                    width,
+                    1,
+                );
+
+                ctx.font = "9px sans-serif";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+
+                for (
+                    let year = canvasState.minYear;
+                    year <= canvasState.maxYear;
+                    year++
+                ) {
+                    const x =
+                        (year - canvasState.minYear) *
+                        canvasState.cellWidth;
+
+                    // Selection Highlight
+                    if (
+                        canvasState.selectionStart !== null &&
+                        canvasState.selectionEnd !== null
+                    ) {
+                        const start = Math.min(
+                            canvasState.selectionStart,
+                            canvasState.selectionEnd,
+                        );
+                        const end = Math.max(
+                            canvasState.selectionStart,
+                            canvasState.selectionEnd,
+                        );
+                        if (year >= start && year <= end) {
+                            ctx.fillStyle = COLORS.selection;
+                            ctx.fillRect(
+                                x,
+                                0,
+                                canvasState.cellWidth,
+                                height, // Highlight full column
+                            );
+                        }
+                    }
+
+                    // Draw Text every 10 years or edges
+                    if (
+                        year % 10 === 0 ||
+                        year === canvasState.minYear ||
+                        year === canvasState.maxYear
+                    ) {
+                        ctx.fillStyle = COLORS.text;
+                        ctx.fillText(
+                            year,
+                            x + canvasState.cellWidth / 2,
+                            canvasState.headerHeight / 2,
+                        );
+                        // Tick mark
+                        ctx.fillStyle = "#ccc";
+                        ctx.fillRect(x, 0, 1, canvasState.headerHeight);
+                    }
+                }
+            }
+
+            // --- CANVAS INTERACTIONS ---
+            if (canvas) {
+                // Sync Scroll
+                scrollArea.addEventListener("scroll", () => {
+                    sidebar.scrollTop = scrollArea.scrollTop;
+                });
+
+                // Mouse Move (Hover + Drag)
+                canvas.addEventListener("mousemove", (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+
+                    // Handle Dragging
+                    if (canvasState.isDragging) {
+                        const yearIndex = Math.floor(x / canvasState.cellWidth);
+                        const year = Math.max(canvasState.minYear, Math.min(canvasState.maxYear, canvasState.minYear + yearIndex));
+                        canvasState.selectionEnd = year;
+                        drawCanvas();
+                        return;
+                    }
+
+                    // Handle Tooltip
+                    const yearIndex = Math.floor(x / canvasState.cellWidth);
+                    const rowIndex = Math.floor(
+                        (y - canvasState.headerHeight) / canvasState.cellHeight,
+                    );
+
+                    if (
+                        rowIndex >= 0 &&
+                        rowIndex < canvasState.journals.length &&
+                        yearIndex >= 0
+                    ) {
+                        const year = canvasState.minYear + yearIndex;
+                        const journalName = canvasState.journals[rowIndex];
+
+                        if (year > canvasState.maxYear) {
+                            tooltip.classList.add("hidden");
+                            return;
+                        }
+
+                        const journalData = DATASET_RESULTS[journalName];
+                        const yearMap = journalYearMaps[journalName] || {};
+                        const keys = yearMap[year];
+
+                        if (keys && keys.length > 0) {
+                            let tooltipHTML = `<div class="font-bold border-b border-gray-600 pb-1 mb-1">${journalName} (${year})</div>`;
+
+                            // Grid Layout: First col for labels, subsequent cols for each key
+                            // grid-template-columns: auto 1fr 1fr ...
+                            const gridCols = keys.length + 1;
+                            tooltipHTML += `<div class="grid gap-x-3 gap-y-1 text-xs" style="grid-template-columns: auto repeat(${keys.length}, minmax(max-content, 1fr));">`;
+
+                            // Header Row
+                            tooltipHTML += `<div></div>`; // Empty top-left
+                            keys.forEach(key => {
+                                const isRange = key.includes("-");
+                                const label = isRange ? key : `Year ${key}`;
+
+                                // Generate Visual Preview
+                                const data = journalData.years[key];
+                                let previewHTML = `<div class="h-3 w-full flex mb-1 border border-gray-600">`;
+
+                                if (!data || data.summary.images === 0) {
+                                    previewHTML += `<div class="w-full h-full bg-gray-700"></div>`;
+                                } else {
+                                    const activeProfiles = getSelectedProfiles();
+                                    activeProfiles.forEach(profile => {
+                                        // Calculate percentage for opacity
+                                        let missing = 0;
+                                        if (profile === "Texts") {
+                                            missing = data.summary.profile_counts.texts_group.missing_coverage || 0;
+                                        } else {
+                                            missing = data.summary.profile_counts[profile] || 0;
+                                        }
+                                        const total = data.summary.images;
+                                        let percent = total > 0 ? (total - missing) / total : 0;
+
+                                        // Color logic matching drawCanvas
+                                        let colorStyle = "";
+                                        if (percent === 0) {
+                                            colorStyle = `background-color: #4b5563;`; // Dark gray
+                                        } else {
+                                            const baseColor = PROFILE_COLORS[profile] || PROFILE_COLORS["default"];
+                                            const alpha = Math.max(0.3, percent);
+                                            // Convert hex to rgba for opacity if needed, or just use opacity property
+                                            // Using opacity property affects the element, so background color needs to be distinct
+                                            // Simpler: use style with opacity. 
+                                            // Note: baseColor is hex. 
+                                            colorStyle = `background-color: ${baseColor}; opacity: ${alpha};`;
+                                        }
+
+                                        previewHTML += `<div class="flex-1 h-full" style="${colorStyle}"></div>`;
+                                    });
+                                }
+                                previewHTML += `</div>`;
+
+                                tooltipHTML += `<div class="flex flex-col items-center border-b border-gray-700 pb-0.5">
+                                    ${previewHTML}
+                                    <div class="font-semibold text-gray-400 text-center">${label}</div>
+                                </div>`;
+                            });
+
+                            // Helper to get count and percentage
+                            const getData = (data, profile) => {
+                                if (!data) return { val: "-", percent: null };
+                                // Fix: Year data uses 'images', not 'total_images'
+                                const total = data.summary.images;
+
+                                if (profile === 'Images') return { val: total, percent: null };
+
+                                let count = 0;
+                                if (profile === 'Texts') {
+                                    const textGroup = data.summary.profile_counts.texts_group || {};
+                                    // For texts, we want to show coverage percentage (pages with text / total pages)
+                                    // But the previous logic showed "missing coverage".
+                                    // Let's stick to the requested "percentage" which usually implies coverage.
+                                    // Wait, previous logic was: ((total - missing) / total) * 100
+                                    const missing = textGroup.missing_coverage || 0;
+                                    count = total - missing;
+                                } else {
+                                    // For other profiles, it's just the count of pages having that profile
+                                    // Previous logic: ((total - missing) / total) * 100 where missing was... wait.
+                                    // The previous logic: missing = yearData.summary.profile_counts[p] || 0; 
+                                    // AND THEN: percent = ((total - missing) / total) * 100 ??
+                                    // That seems wrong if 'missing' was actually the count present. 
+                                    // Let's look at the old code:
+                                    // missing = yearData.summary.profile_counts[p] || 0;
+                                    // percent = ((total - missing) / total) * 100;
+                                    // This implies 'profile_counts[p]' stored the MISSING count? 
+                                    // Let's re-read the scan logic. 
+                                    // scan_all_journals: if not target_file.exists(): year_data["summary"]["profile_counts"][name] += 1
+                                    // YES! profile_counts stores the MISSING count for standard profiles.
+
+                                    const missing = data.summary.profile_counts[profile] || 0;
+                                    count = total - missing;
+                                }
+
+                                const percent = total > 0 ? Math.round((count / total) * 100) : 0;
+                                return { val: count, percent: percent };
+                            };
+
+                            // Rows to show
+                            const activeProfiles = getSelectedProfiles();
+                            const rows = ['Images', ...activeProfiles];
+
+                            rows.forEach(metric => {
+                                // Check if this metric has any data across ANY of the keys
+                                const hasData = keys.some(key => {
+                                    const data = journalData.years[key];
+                                    const { val } = getData(data, metric);
+                                    return val !== "-" && (metric === 'Images' ? true : val >= 0); // Show even if 0 coverage?
+                                });
+
+                                if (hasData || metric === 'Images') {
+                                    tooltipHTML += `<div class="text-gray-300 font-medium">${metric}:</div>`;
+                                    keys.forEach(key => {
+                                        const data = journalData.years[key];
+                                        const { val, percent } = getData(data, metric);
+
+                                        let display = val;
+                                        if (metric !== 'Images' && percent !== null && val !== "-") {
+                                            display = `${percent}%`;
+                                        }
+
+                                        tooltipHTML += `<div class="text-right font-mono ${val === '-' ? 'text-gray-600' : ''}">${display}</div>`;
+                                    });
+                                }
+                            });
+
+                            tooltipHTML += `</div>`;
+
+                            tooltip.innerHTML = tooltipHTML;
+                            // Revert to using x/y (relative to canvas/scroll area) as requested.
+                            // This ensures the tooltip moves correctly with the scroll and is positioned relative to the canvas content.
+                            tooltip.style.left = `${x + 15}px`;
+                            tooltip.style.top = `${y + 15}px`;
+                            tooltip.classList.remove("hidden");
+                        } else {
+                            tooltip.classList.add("hidden");
+                        }
+                    } else {
+                        tooltip.classList.add("hidden");
+                    }
+                });
+
+                // Mouse Down (Start Drag)
+                canvas.addEventListener("mousedown", (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const y = e.clientY - rect.top;
+                    const x = e.clientX - rect.left;
+
+                    // Only allow drag if clicking header
+                    if (y <= canvasState.headerHeight) {
+                        canvasState.isDragging = true;
+                        const yearIndex = Math.floor(
+                            x / canvasState.cellWidth,
+                        );
+                        const year = canvasState.minYear + yearIndex;
+                        canvasState.selectionStart = year;
+                        canvasState.selectionEnd = year;
+                        drawCanvas();
+                    }
+                });
+
+                // Mouse Up (End Drag)
+                document.addEventListener("mouseup", () => {
+                    if (canvasState.isDragging) {
+                        canvasState.isDragging = false;
+                        updateSelectionStats();
+                    }
+                });
+
+                // Mouse Leave
+                canvas.addEventListener("mouseleave", () => {
+                    tooltip.classList.add("hidden");
+                });
+            }
+
+            function updateSelectionStats() {
+                const statsPanel =
+                    document.getElementById("selection-stats");
+                if (
+                    canvasState.selectionStart === null ||
+                    canvasState.selectionEnd === null
+                ) {
+                    statsPanel.classList.add("hidden");
+                    return;
+                }
+
+                statsPanel.classList.remove("hidden");
+                const start = Math.min(
+                    canvasState.selectionStart,
+                    canvasState.selectionEnd,
+                );
+                const end = Math.max(
+                    canvasState.selectionStart,
+                    canvasState.selectionEnd,
+                );
+
+                if (rangeInput && document.activeElement !== rangeInput)
+                    rangeInput.value = `${start} - ${end}`;
+
+                let totalImages = 0;
+                const selectedJournals = getSelectedJournals();
+
+                selectedJournals.forEach((name) => {
+                    if (!DATASET_RESULTS[name]) return;
+                    const yearsData = DATASET_RESULTS[name].years;
+                    for (let y = start; y <= end; y++) {
+                        const yearKey = String(y);
+                        if (yearsData[yearKey])
+                            totalImages +=
+                                yearsData[yearKey].summary.images;
+                    }
+                });
+
+                document.getElementById(
+                    "selection-total-count",
+                ).textContent = totalImages.toLocaleString();
+            }
+
+            if (rangeInput) {
+                rangeInput.addEventListener("change", function () {
+                    const val = this.value;
+                    const matchRange = val.match(
+                        /(\d{4})\s*[-–]\s*(\d{4})/,
+                    );
+                    const matchSingle = val.match(/^(\d{4})$/);
+                    let s, e;
+                    if (matchRange) {
+                        s = parseInt(matchRange[1]);
+                        e = parseInt(matchRange[2]);
+                    } else if (matchSingle) {
+                        s = parseInt(matchSingle[1]);
+                        e = s;
+                    } else return;
+                    if (s < canvasState.minYear) s = canvasState.minYear;
+                    if (e > canvasState.maxYear) e = canvasState.maxYear;
+                    canvasState.selectionStart = s;
+                    canvasState.selectionEnd = e;
+                    this.blur();
+                    drawCanvas();
+                    updateSelectionStats();
+                });
+            }
+
+            window.clearTimelineSelection = function () {
+                canvasState.selectionStart = null;
+                canvasState.selectionEnd = null;
+                canvasState.isDragging = false;
+                document
+                    .getElementById("selection-stats")
+                    .classList.add("hidden");
+                drawCanvas();
+            };
+
+            // --- GLOBAL FUNCTIONS & LISTENERS ---
             window.switchTab = function (tabName) {
                 const tableBtn = document.getElementById("tab-btn-table");
-                const timelineBtn = document.getElementById("tab-btn-timeline");
+                const timelineBtn = document.getElementById(
+                    "tab-btn-timeline",
+                );
                 const tableView = document.getElementById("view-table");
-                const timelineView = document.getElementById("view-timeline");
+                const timelineView =
+                    document.getElementById("view-timeline");
 
                 const activeClasses = [
                     "text-blue-600",
@@ -786,1057 +1761,112 @@
                 if (tabName === "table") {
                     tableView.classList.remove("hidden");
                     timelineView.classList.add("hidden");
-
-                    // Apply Active to Table Btn
                     tableBtn.classList.add(...activeClasses);
                     tableBtn.classList.remove(...inactiveClasses);
-
-                    // Apply Inactive to Timeline Btn
                     timelineBtn.classList.remove(...activeClasses);
                     timelineBtn.classList.add(...inactiveClasses);
                 } else {
                     tableView.classList.add("hidden");
                     timelineView.classList.remove("hidden");
-
-                    // Apply Inactive to Table Btn
                     tableBtn.classList.remove(...activeClasses);
                     tableBtn.classList.add(...inactiveClasses);
-
-                    // Apply Active to Timeline Btn
                     timelineBtn.classList.add(...activeClasses);
                     timelineBtn.classList.remove(...inactiveClasses);
-
-                    const evt = new Event("triggerTimelineRender");
-                    document.dispatchEvent(evt);
+                    // Trigger render because canvas needs visibility to size correctly
+                    renderTimeline();
                 }
+            };
+
+            // Filters Change Event
+            if (controls) {
+                controls.addEventListener("change", () => {
+                    saveFilters();
+                    updateTable();
+                    if (
+                        !document
+                            .getElementById("view-timeline")
+                            .classList.contains("hidden")
+                    ) {
+                        renderTimeline();
+                    }
+                });
+            }
+            // Checkboxes Change Event
+            if (journalControls) {
+                const checkboxes = journalControls.querySelectorAll(
+                    'input[type="checkbox"]',
+                );
+                checkboxes.forEach((cb) => {
+                    cb.addEventListener("change", () => {
+                        updateTable();
+                        if (
+                            !document
+                                .getElementById("view-timeline")
+                                .classList.contains("hidden")
+                        ) {
+                            renderTimeline();
+                            // Fix: Update stats when individual journal changes
+                            updateSelectionStats();
+                        }
+                    });
+                });
             }
 
-            // Placeholders
-            window.toggleAllJournals = function () {};
-            window.clearTimelineSelection = function () {};
-            window.toggleAllProfiles = function () {};
-
-            document.addEventListener("DOMContentLoaded", function () {
-                updateIcons();
-
-                const controls = document.getElementById("filter-controls");
-                const journalControls =
-                    document.getElementById("journal-controls");
-                const tableRows = document.querySelectorAll(".journal-row");
-                const storageKey = "dashboardProfileFilters";
-                const rangeInput = document.getElementById(
-                    "selection-range-input",
+            // Initial Chart Logic (Same as before)
+            const chartCtx =
+                document.getElementById("journalSizeChart");
+            if (chartCtx) {
+                const journalLabels = Array.from(tableRows).map((row) =>
+                    row.children[0].textContent.trim(),
                 );
-
-                // Dataset Loading
-                let DATASET_RESULTS = {};
-                try {
-                    const scriptTag = document.getElementById("full-dataset");
-                    if (scriptTag)
-                        DATASET_RESULTS = JSON.parse(scriptTag.textContent);
-                } catch (e) {
-                    console.error("JSON Parse Error", e);
-                }
-
-                const PROFILE_COLORS = {
-                    Texts: "#10b981",
-                    xml: "#3b82f6",
-                    altoxml: "#f59e0b",
-                    "metadata-v1": "#8b5cf6",
-                    "metadata-v2": "#ec4899",
-                    avif: "#f9ec16",
-                    default: "#6b7280",
-                };
-
-                document.querySelectorAll(".color-dot").forEach((dot) => {
-                    const profile = dot.dataset.profile;
-                    const color =
-                        PROFILE_COLORS[profile] ||
-                        PROFILE_COLORS[profile.split("-")[0]] ||
-                        PROFILE_COLORS["default"];
-                    dot.style.backgroundColor = color;
-                });
-
-                function toCamelCase(str) {
-                    return str
-                        .toLowerCase()
-                        .replace(/([-_][a-z0-9])/g, (group) =>
-                            group
-                                .toUpperCase()
-                                .replace("-", "")
-                                .replace("_", ""),
-                        );
-                }
-
-                function getSelectedProfiles() {
-                    const selected = new Set();
-                    if (controls)
-                        controls
-                            .querySelectorAll('input[type="checkbox"]:checked')
-                            .forEach((cb) => selected.add(cb.value));
-                    return Array.from(selected);
-                }
-
-                function getSelectedJournals() {
-                    const selected = new Set();
-                    if (journalControls)
-                        journalControls
-                            .querySelectorAll('input[type="checkbox"]:checked')
-                            .forEach((cb) => selected.add(cb.value));
-                    return selected;
-                }
-
-                function saveFilters() {
-                    const selected = getSelectedProfiles();
-                    localStorage.setItem(storageKey, JSON.stringify(selected));
-                }
-
-                function loadFilters() {
-                    const saved = localStorage.getItem(storageKey);
-                    if (saved) {
-                        const selectedProfiles = new Set(JSON.parse(saved));
-                        controls
-                            .querySelectorAll('input[type="checkbox"]')
-                            .forEach((cb) => {
-                                cb.checked = selectedProfiles.has(cb.value);
-                            });
-                    }
-                }
-
-                // Initialize Activity Rings (Shared SVG Logic) - Defined HERE to be available
-                function renderActivityRings(container, ringData) {
-                    container.innerHTML = "";
-                    const size = 120;
-                    const strokeWidth = 6;
-                    const center = size / 2;
-                    const svg = document.createElementNS(
-                        "http://www.w3.org/2000/svg",
-                        "svg",
-                    );
-                    svg.setAttribute("width", size);
-                    svg.setAttribute("height", size);
-                    svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
-
-                    const maxRadius = size / 2 - strokeWidth / 2;
-                    const gap = 3;
-
-                    ringData.forEach((ring, index) => {
-                        const radius =
-                            maxRadius - index * (strokeWidth + gap);
-                        if (radius <= 0) return;
-                        const circumference = 2 * Math.PI * radius;
-                        const offset =
-                            circumference -
-                            (ring.percent / 100) * circumference;
-                        const color =
-                            PROFILE_COLORS[ring.profile] ||
-                            PROFILE_COLORS[ring.profile.split("-")[0]] ||
-                            PROFILE_COLORS["default"];
-
-                        // Background
-                        const bgCircle = document.createElementNS(
-                            "http://www.w3.org/2000/svg",
-                            "circle",
-                        );
-                        bgCircle.setAttribute("cx", center);
-                        bgCircle.setAttribute("cy", center);
-                        bgCircle.setAttribute("r", radius);
-                        bgCircle.setAttribute("stroke-width", strokeWidth);
-                        bgCircle.setAttribute("class", "ring-bg");
-                        bgCircle.style.fill = "none";
-                        svg.appendChild(bgCircle);
-
-                        // Progress
-                        const progressCircle = document.createElementNS(
-                            "http://www.w3.org/2000/svg",
-                            "circle",
-                        );
-                        progressCircle.setAttribute("cx", center);
-                        progressCircle.setAttribute("cy", center);
-                        progressCircle.setAttribute("r", radius);
-                        progressCircle.setAttribute("stroke", color);
-                        progressCircle.setAttribute(
-                            "stroke-width",
-                            strokeWidth,
-                        );
-                        progressCircle.setAttribute(
-                            "stroke-dasharray",
-                            circumference,
-                        );
-                        progressCircle.setAttribute(
-                            "stroke-dashoffset",
-                            offset,
-                        );
-                        progressCircle.setAttribute("class", "ring-progress");
-                        progressCircle.style.fill = "none";
-                        progressCircle.style.stroke = color;
-                        svg.appendChild(progressCircle);
-                    });
-                    container.appendChild(svg);
-                }
-
-                // --- GLOBAL OVERRIDES ---
-                window.toggleAllProfiles = function (checked) {
-                    if (controls) {
-                        controls
-                            .querySelectorAll('input[type="checkbox"]')
-                            .forEach((cb) => (cb.checked = checked));
-                        saveFilters();
-                        updateTable();
-                        if (
-                            !document
-                                .getElementById("view-timeline")
-                                .classList.contains("hidden")
-                        ) {
-                            // Trigger render manually
-                            const evt = new Event("triggerTimelineRender");
-                            document.dispatchEvent(evt);
-                        }
-                    }
-                };
-
-                window.toggleAllJournals = function (checked) {
-                    if (journalControls) {
-                        journalControls
-                            .querySelectorAll('input[type="checkbox"]')
-                            .forEach((cb) => (cb.checked = checked));
-                        updateTable();
-                        if (
-                            !document
-                                .getElementById("view-timeline")
-                                .classList.contains("hidden")
-                        ) {
-                            renderTimeline();
-                            // Fix: Update stats when bulk toggling
-                            updateSelectionStats();
-                        }
-                    }
-                };
-
-                // New Function: Select journals that have data for selected profiles
-                // mode = 'AND' (Exclusive) or 'OR' (Inclusive)
-                window.selectJournalsWithData = function (mode = 'AND') {
-                    console.clear();
-                    console.log(`--- Starting Select Matches (${mode} Mode) ---`);
-                    const activeProfiles = getSelectedProfiles();
-                    console.log("Active Profiles:", activeProfiles);
-
-                    const jControls = document.getElementById("journal-controls");
-                    if (!jControls) return;
-
-                    const journalCheckboxes = jControls.querySelectorAll(
-                        'input[type="checkbox"]',
-                    );
-
-                    let matchedCount = 0;
-
-                    journalCheckboxes.forEach((cb) => {
-                        const journalName = cb.value;
-                        const data = DATASET_RESULTS[journalName];
-
-                        if (!data) {
-                            cb.checked = false;
-                            return;
-                        }
-
-                        // Force integer conversion for safety
-                        const totalImages = parseInt(data.summary.total_images || 0, 10);
-
-                        // LOGIC BRANCHING
-                        // AND: Assume True, fail if any missing.
-                        // OR: Assume False, succeed if any present.
-                        let hasData = (mode === 'AND');
-
-                        let logMsg = `Checking ${journalName} (Total: ${totalImages}): `;
-
-                        if (totalImages > 0) {
-                            if (activeProfiles.length === 0) {
-                                hasData = false;
-                                logMsg += "No active profiles selected.";
-                            } else {
-                                for (const profile of activeProfiles) {
-                                    let missingRaw;
-
-                                    if (profile === "Texts") {
-                                        missingRaw = data.summary.profile_counts?.texts_group?.missing_coverage;
-                                    } else {
-                                        missingRaw = data.summary.profile_counts?.[profile];
-                                    }
-
-                                    // Robust undefined check
-                                    let missing = totalImages;
-                                    if (missingRaw !== undefined && missingRaw !== null) {
-                                        missing = parseInt(missingRaw, 10);
-                                    }
-
-                                    const present = totalImages - missing;
-                                    logMsg += `[${profile}: present=${present}] `;
-
-                                    if (mode === 'AND') {
-                                        // EXCLUSIVE (AND): If ANY selected profile has 0 files, fail.
-                                        if (present <= 0) {
-                                            hasData = false;
-                                            logMsg += `-> FAILED (Zero data for ${profile})`;
-                                            break;
-                                        }
-                                    } else {
-                                        // INCLUSIVE (OR): If ANY selected profile has files, succeed.
-                                        if (present > 0) {
-                                            hasData = true;
-                                            logMsg += `-> MATCHED (Found data for ${profile})`;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            hasData = false;
-                            logMsg += "Skipped (0 Images)";
-                        }
-
-                        if (hasData) {
-                             if (mode === 'AND') logMsg += "-> MATCHED (All profiles present)";
-                             matchedCount++;
-                        }
-
-                        // console.log(logMsg); // Uncomment for detailed debug
-                        cb.checked = hasData;
-                    });
-
-                    console.log(`Select Matches Complete. Selected ${matchedCount} journals.`);
-
-                    // Force UI Refresh
-                    updateTable();
-                    if (!document.getElementById("view-timeline").classList.contains("hidden")) {
-                        renderTimeline();
-                        updateSelectionStats();
-                    }
-                };
-
-                document.addEventListener(
-                    "triggerTimelineRender",
-                    function () {
-                        if (
-                            !document
-                                .getElementById("view-timeline")
-                                .classList.contains("hidden")
-                        ) {
-                            drawCanvas();
-                        }
+                const imageCounts = Array.from(tableRows).map((row) =>
+                    // We can grab totals from dataset now or parse DOM (stick to DOM for ease here)
+                    // Actually, we can just read the data from dataset more cleanly:
+                    DATASET_RESULTS[row.dataset.journalName]
+                        ? DATASET_RESULTS[row.dataset.journalName]
+                            .summary.total_images
+                        : 0,
+                );
+                new Chart(chartCtx.getContext("2d"), {
+                    type: "bar",
+                    data: {
+                        labels: journalLabels,
+                        datasets: [
+                            {
+                                label: "Total Image Count",
+                                data: imageCounts,
+                                backgroundColor:
+                                    "rgba(59, 130, 246, 0.5)",
+                                borderColor: "rgba(59, 130, 246, 1)",
+                                borderWidth: 1,
+                            },
+                        ],
                     },
-                );
-
-                // --- SHARED CALCULATION LOGIC (Mitigate Logic Drift) ---
-                function calculateConsistency(journalData, activeProfiles) {
-                    // journalData = { summary: { total_images: X, profile_counts: {...} } }
-                    // activeProfiles = ['Texts', 'xml', 'metadata-v1']
-
-                    const totalImages = journalData.summary.total_images || 0;
-                    let totalMissing = 0;
-                    const ringData = [];
-
-                    activeProfiles.forEach((profile) => {
-                        let missingCount = 0;
-                        if (profile === "Texts") {
-                            missingCount =
-                                journalData.summary.profile_counts.texts_group
-                                    .missing_coverage || 0;
-                        } else {
-                            missingCount =
-                                journalData.summary.profile_counts[profile] ||
-                                0;
-                        }
-                        totalMissing += missingCount;
-
-                        let percent = 0;
-                        if (totalImages > 0) {
-                            percent =
-                                ((totalImages - missingCount) / totalImages) *
-                                100;
-                        } else if (totalImages === 0 && missingCount === 0) {
-                            percent = 100;
-                        }
-                        ringData.push({
-                            profile: profile,
-                            percent: Math.max(0, percent),
-                        });
-                    });
-
-                    const totalPossible = totalImages * activeProfiles.length;
-                    let overallConsistency = 100.0;
-                    if (totalPossible > 0) {
-                        overallConsistency = Math.max(
-                            0,
-                            ((totalPossible - totalMissing) / totalPossible) *
-                                100,
-                        );
-                    } else if (totalImages > 0) {
-                        overallConsistency = 0;
-                    }
-
-                    return {
-                        totalMissing,
-                        overallConsistency,
-                        ringData,
-                    };
-                }
-
-                // --- TABLE UPDATE LOGIC ---
-                function updateTable() {
-                    try {
-                        const activeProfiles = getSelectedProfiles();
-                        const selectedJournals = getSelectedJournals();
-
-                        tableRows.forEach((row) => {
-                            const journalName = row.dataset.journalName;
-
-                            // Filter Row Visibility
-                            if (selectedJournals.has(journalName)) {
-                                row.style.display = "";
-                            } else {
-                                row.style.display = "none";
-                                return;
-                            }
-
-                            // Use SHARED LOGIC for math
-                            const journalData = DATASET_RESULTS[journalName];
-                            if (!journalData) return;
-
-                            const metrics = calculateConsistency(
-                                journalData,
-                                activeProfiles,
-                            );
-
-                            // Update DOM
-                            const missingEl =
-                                row.querySelector(".total-missing");
-                            if (missingEl)
-                                missingEl.textContent =
-                                    metrics.totalMissing.toLocaleString();
-
-                            const consistEl = row.querySelector(
-                                ".consistency-percent",
-                            );
-                            if (consistEl)
-                                consistEl.textContent = `${metrics.overallConsistency.toFixed(2)}%`;
-
-                            const ringContainer =
-                                row.querySelector(".ring-container");
-                            if (ringContainer) {
-                                renderActivityRings(
-                                    ringContainer,
-                                    metrics.ringData,
-                                );
-                            }
-                        });
-                    } catch (e) {
-                        console.error("Table Update Error", e);
-                    }
-                }
-
-                // --- CANVAS TIMELINE LOGIC ---
-                const canvas = document.getElementById("timeline-canvas");
-                const ctx = canvas ? canvas.getContext("2d") : null;
-                const scrollArea = document.getElementById(
-                    "timeline-scroll-area",
-                );
-                const sidebar = document.getElementById("timeline-sidebar");
-                const sidebarList =
-                    document.getElementById("journal-names-list");
-                const tooltip = document.getElementById("canvas-tooltip");
-
-                let canvasState = {
-                    cellWidth: 24,
-                    cellHeight: 32, // h-8
-                    headerHeight: 32, // h-8
-                    journals: [],
-                    minYear: 0,
-                    maxYear: 0,
-                    isDragging: false,
-                    selectionStart: null,
-                    selectionEnd: null,
-                };
-
-                // Calculate Date Range
-                let minYear = 3000;
-                let maxYear = 1000;
-                try {
-                    Object.keys(DATASET_RESULTS).forEach((name) => {
-                        Object.keys(DATASET_RESULTS[name].years).forEach(
-                            (yStr) => {
-                                const y = parseInt(yStr.split("-")[0]);
-                                if (y < minYear) minYear = y;
-                                if (y > maxYear) maxYear = y;
+                    options: {
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                type: "logarithmic",
+                                beginAtZero: true,
                             },
-                        );
-                    });
-                    if (minYear > maxYear) {
-                        minYear = 1900;
-                        maxYear = 2000;
-                    }
-                    canvasState.minYear = minYear;
-                    canvasState.maxYear = maxYear;
-                } catch (e) {}
-
-                function renderTimeline() {
-                    if (!ctx) return;
-
-                    // 1. Prepare Data
-                    const selectedJournalSet = getSelectedJournals();
-                    const visibleJournals = Array.from(
-                        selectedJournalSet,
-                    ).sort();
-                    canvasState.journals = visibleJournals;
-
-                    // 2. Populate Sidebar (DOM for text searchability/crispness)
-                    sidebarList.innerHTML = "";
-                    visibleJournals.forEach((name) => {
-                        const div = document.createElement("div");
-                        div.className =
-                            "h-8 flex items-center justify-end pr-2 text-xs font-bold text-gray-700 dark:text-gray-300 border-b border-gray-100 dark:border-gray-600 truncate";
-                        div.textContent = name;
-                        div.title = name;
-                        sidebarList.appendChild(div);
-                    });
-
-                    // 3. Resize Canvas
-                    const totalYears =
-                        canvasState.maxYear - canvasState.minYear + 1;
-                    const totalWidth = totalYears * canvasState.cellWidth;
-                    const totalHeight =
-                        canvasState.headerHeight +
-                        visibleJournals.length * canvasState.cellHeight;
-
-                    // High DPI scaling
-                    const dpr = window.devicePixelRatio || 1;
-                    canvas.style.width = `${totalWidth}px`;
-                    canvas.style.height = `${totalHeight}px`;
-                    canvas.width = totalWidth * dpr;
-                    canvas.height = totalHeight * dpr;
-                    ctx.scale(dpr, dpr);
-
-                    drawCanvas();
-                }
-
-                function drawCanvas() {
-                    if (!ctx) return;
-                    const width =
-                        (canvasState.maxYear - canvasState.minYear + 1) *
-                        canvasState.cellWidth;
-                    const height =
-                        canvasState.headerHeight +
-                        canvasState.journals.length * canvasState.cellHeight;
-                    const isDark =
-                        document.documentElement.classList.contains("dark");
-                    const activeProfiles = getSelectedProfiles();
-
-                    // Colors
-                    const COLORS = {
-                        bg: isDark ? "#111827" : "#f9fafb", // Gray 900 / Gray 50
-                        headerBg: isDark ? "#1f2937" : "#f3f4f6", // Gray 800 / Gray 100
-                        border: isDark ? "#4b5563" : "#e5e7eb",
-                        text: isDark ? "#9ca3af" : "#6b7280",
-                        selection: isDark
-                            ? "rgba(59, 130, 246, 0.3)"
-                            : "rgba(191, 219, 254, 0.5)",
-                        missingYear: isDark ? "#1f2937" : "#e5e7eb", // Gray 800 / Gray 200
-                        emptyData: isDark ? "#374151" : "#d1d5db", // Gray 700 / Gray 300
-                    };
-
-                    ctx.clearRect(0, 0, width, height);
-
-                    // --- DRAW GRID & DATA ---
-                    canvasState.journals.forEach((journalName, rowIndex) => {
-                        const y =
-                            canvasState.headerHeight +
-                            rowIndex * canvasState.cellHeight;
-                        const journalData = DATASET_RESULTS[journalName];
-
-                        // Bottom border for row
-                        ctx.fillStyle = COLORS.border;
-                        ctx.fillRect(0, y + canvasState.cellHeight - 1, width, 1);
-
-                        for (
-                            let year = canvasState.minYear;
-                            year <= canvasState.maxYear;
-                            year++
-                        ) {
-                            const x =
-                                (year - canvasState.minYear) *
-                                canvasState.cellWidth;
-                            const yearKey = String(year);
-                            const yearData = journalData.years[yearKey];
-
-                            // Background Cell
-                            if (!yearData) {
-                                // Missing Year
-                                ctx.fillStyle = COLORS.missingYear;
-                                ctx.fillRect(
-                                    x,
-                                    y,
-                                    canvasState.cellWidth - 1,
-                                    canvasState.cellHeight - 1,
-                                );
-                            } else if (yearData.summary.images === 0) {
-                                // Empty Data
-                                ctx.fillStyle = COLORS.emptyData;
-                                ctx.fillRect(
-                                    x,
-                                    y,
-                                    canvasState.cellWidth - 1,
-                                    canvasState.cellHeight - 1,
-                                );
-                            } else {
-                                // Draw Stripes
-                                const stripeW =
-                                    canvasState.cellWidth /
-                                    activeProfiles.length;
-
-                                activeProfiles.forEach((profile, pIndex) => {
-                                    let missing = 0;
-                                    if (profile === "Texts") {
-                                        missing =
-                                            yearData.summary.profile_counts
-                                                .texts_group.missing_coverage ||
-                                            0;
-                                    } else {
-                                        missing =
-                                            yearData.summary.profile_counts[
-                                                profile
-                                            ] || 0;
-                                    }
-                                    const total = yearData.summary.images;
-                                    let percent = 0;
-                                    if (total > 0)
-                                        percent = (total - missing) / total;
-
-                                    if (percent === 0) {
-                                        ctx.fillStyle = "#4b5563"; // Dark gray for 0%
-                                    } else {
-                                        const baseColor =
-                                            PROFILE_COLORS[profile] ||
-                                            PROFILE_COLORS["default"];
-                                        ctx.fillStyle = baseColor;
-                                        ctx.globalAlpha = Math.max(
-                                            0.3,
-                                            percent,
-                                        );
-                                    }
-
-                                    ctx.fillRect(
-                                        x + pIndex * stripeW,
-                                        y,
-                                        stripeW,
-                                        canvasState.cellHeight - 1,
-                                    );
-                                    ctx.globalAlpha = 1.0;
-                                });
-                            }
-                        }
-                    });
-
-                    // --- DRAW HEADER ---
-                    ctx.fillStyle = COLORS.headerBg;
-                    ctx.fillRect(0, 0, width, canvasState.headerHeight);
-                    // Header bottom border
-                    ctx.fillStyle = COLORS.border;
-                    ctx.fillRect(
-                        0,
-                        canvasState.headerHeight - 1,
-                        width,
-                        1,
-                    );
-
-                    ctx.font = "9px sans-serif";
-                    ctx.textAlign = "center";
-                    ctx.textBaseline = "middle";
-
-                    for (
-                        let year = canvasState.minYear;
-                        year <= canvasState.maxYear;
-                        year++
-                    ) {
-                        const x =
-                            (year - canvasState.minYear) *
-                            canvasState.cellWidth;
-
-                        // Selection Highlight
-                        if (
-                            canvasState.selectionStart !== null &&
-                            canvasState.selectionEnd !== null
-                        ) {
-                            const start = Math.min(
-                                canvasState.selectionStart,
-                                canvasState.selectionEnd,
-                            );
-                            const end = Math.max(
-                                canvasState.selectionStart,
-                                canvasState.selectionEnd,
-                            );
-                            if (year >= start && year <= end) {
-                                ctx.fillStyle = COLORS.selection;
-                                ctx.fillRect(
-                                    x,
-                                    0,
-                                    canvasState.cellWidth,
-                                    height, // Highlight full column
-                                );
-                            }
-                        }
-
-                        // Draw Text every 10 years or edges
-                        if (
-                            year % 10 === 0 ||
-                            year === canvasState.minYear ||
-                            year === canvasState.maxYear
-                        ) {
-                            ctx.fillStyle = COLORS.text;
-                            ctx.fillText(
-                                year,
-                                x + canvasState.cellWidth / 2,
-                                canvasState.headerHeight / 2,
-                            );
-                            // Tick mark
-                            ctx.fillStyle = "#ccc";
-                            ctx.fillRect(x, 0, 1, canvasState.headerHeight);
-                        }
-                    }
-                }
-
-                // --- CANVAS INTERACTIONS ---
-                if (canvas) {
-                    // Sync Scroll
-                    scrollArea.addEventListener("scroll", () => {
-                        sidebar.scrollTop = scrollArea.scrollTop;
-                    });
-
-                    // Mouse Move (Hover + Drag)
-                    canvas.addEventListener("mousemove", (e) => {
-                        const rect = canvas.getBoundingClientRect();
-                        const x = e.clientX - rect.left; // x relative to canvas
-                        const y = e.clientY - rect.top; // y relative to canvas
-
-                        const yearIndex = Math.floor(
-                            x / canvasState.cellWidth,
-                        );
-                        const year = canvasState.minYear + yearIndex;
-                        const rowIndex = Math.floor(
-                            (y - canvasState.headerHeight) /
-                                canvasState.cellHeight,
-                        );
-
-                        // Dragging logic
-                        if (canvasState.isDragging) {
-                            if (
-                                year >= canvasState.minYear &&
-                                year <= canvasState.maxYear
-                            ) {
-                                canvasState.selectionEnd = year;
-                                drawCanvas(); // Redraw selection highlight
-                                updateSelectionStats();
-                            }
-                            return;
-                        }
-
-                        // Tooltip logic
-                        if (
-                            y > canvasState.headerHeight &&
-                            rowIndex >= 0 &&
-                            rowIndex < canvasState.journals.length
-                        ) {
-                            const journalName =
-                                canvasState.journals[rowIndex];
-                            const journalData = DATASET_RESULTS[journalName];
-                            const yearKey = String(year);
-                            const yearData =
-                                journalData.years[yearKey];
-
-                            // Show Tooltip
-                            tooltip.classList.remove("hidden");
-                            // Fixed: use x/y (relative to canvas content) instead of e.clientX/Y (viewport)
-                            tooltip.style.left = `${x + 15}px`;
-                            tooltip.style.top = `${y + 15}px`;
-
-                            if (!yearData) {
-                                tooltip.innerHTML = `<strong>${journalName} (${year})</strong><br/>Missing Year`;
-                            } else if (yearData.summary.images === 0) {
-                                tooltip.innerHTML = `<strong>${journalName} (${year})</strong><br/>0 Images`;
-                            } else {
-                                const activeProfiles =
-                                    getSelectedProfiles();
-                                let content = `<strong>${journalName} (${year})</strong><br/><hr class="my-1 border-gray-600"/>`;
-                                activeProfiles.forEach((p) => {
-                                    let missing = 0;
-                                    if (p === "Texts") {
-                                        missing =
-                                            yearData.summary.profile_counts
-                                                .texts_group
-                                                .missing_coverage || 0;
-                                    } else {
-                                        missing =
-                                            yearData.summary.profile_counts[
-                                                p
-                                            ] || 0;
-                                    }
-                                    const total =
-                                        yearData.summary.images;
-                                    const percent =
-                                        ((total - missing) / total) *
-                                        100;
-                                    content += `<div class="flex justify-between items-center text-[10px] mt-1 gap-2"><span>${p}:</span> <span>${percent.toFixed(0)}%</span></div>`;
-                                });
-                                tooltip.innerHTML = content;
-                            }
-                        } else {
-                            tooltip.classList.add("hidden");
-                        }
-                    });
-
-                    // Mouse Down (Start Drag)
-                    canvas.addEventListener("mousedown", (e) => {
-                        const rect = canvas.getBoundingClientRect();
-                        const y = e.clientY - rect.top;
-                        const x = e.clientX - rect.left;
-
-                        // Only allow drag if clicking header
-                        if (y <= canvasState.headerHeight) {
-                            canvasState.isDragging = true;
-                            const yearIndex = Math.floor(
-                                x / canvasState.cellWidth,
-                            );
-                            const year = canvasState.minYear + yearIndex;
-                            canvasState.selectionStart = year;
-                            canvasState.selectionEnd = year;
-                            drawCanvas();
-                        }
-                    });
-
-                    // Mouse Up (End Drag)
-                    document.addEventListener("mouseup", () => {
-                        if (canvasState.isDragging) {
-                            canvasState.isDragging = false;
-                            updateSelectionStats();
-                        }
-                    });
-
-                    // Mouse Leave
-                    canvas.addEventListener("mouseleave", () => {
-                        tooltip.classList.add("hidden");
-                    });
-                }
-
-                function updateSelectionStats() {
-                    const statsPanel =
-                        document.getElementById("selection-stats");
-                    if (
-                        canvasState.selectionStart === null ||
-                        canvasState.selectionEnd === null
-                    ) {
-                        statsPanel.classList.add("hidden");
-                        return;
-                    }
-
-                    statsPanel.classList.remove("hidden");
-                    const start = Math.min(
-                        canvasState.selectionStart,
-                        canvasState.selectionEnd,
-                    );
-                    const end = Math.max(
-                        canvasState.selectionStart,
-                        canvasState.selectionEnd,
-                    );
-
-                    if (rangeInput && document.activeElement !== rangeInput)
-                        rangeInput.value = `${start} - ${end}`;
-
-                    let totalImages = 0;
-                    const selectedJournals = getSelectedJournals();
-
-                    selectedJournals.forEach((name) => {
-                        if (!DATASET_RESULTS[name]) return;
-                        const yearsData = DATASET_RESULTS[name].years;
-                        for (let y = start; y <= end; y++) {
-                            const yearKey = String(y);
-                            if (yearsData[yearKey])
-                                totalImages +=
-                                    yearsData[yearKey].summary.images;
-                        }
-                    });
-
-                    document.getElementById(
-                        "selection-total-count",
-                    ).textContent = totalImages.toLocaleString();
-                }
-
-                if (rangeInput) {
-                    rangeInput.addEventListener("change", function () {
-                        const val = this.value;
-                        const matchRange = val.match(
-                            /(\d{4})\s*[-–]\s*(\d{4})/,
-                        );
-                        const matchSingle = val.match(/^(\d{4})$/);
-                        let s, e;
-                        if (matchRange) {
-                            s = parseInt(matchRange[1]);
-                            e = parseInt(matchRange[2]);
-                        } else if (matchSingle) {
-                            s = parseInt(matchSingle[1]);
-                            e = s;
-                        } else return;
-                        if (s < canvasState.minYear) s = canvasState.minYear;
-                        if (e > canvasState.maxYear) e = canvasState.maxYear;
-                        canvasState.selectionStart = s;
-                        canvasState.selectionEnd = e;
-                        this.blur();
-                        drawCanvas();
-                        updateSelectionStats();
-                    });
-                }
-
-                window.clearTimelineSelection = function () {
-                    canvasState.selectionStart = null;
-                    canvasState.selectionEnd = null;
-                    canvasState.isDragging = false;
-                    document
-                        .getElementById("selection-stats")
-                        .classList.add("hidden");
-                    drawCanvas();
-                };
-
-                // --- GLOBAL FUNCTIONS & LISTENERS ---
-                window.switchTab = function (tabName) {
-                    const tableBtn = document.getElementById("tab-btn-table");
-                    const timelineBtn = document.getElementById(
-                        "tab-btn-timeline",
-                    );
-                    const tableView = document.getElementById("view-table");
-                    const timelineView =
-                        document.getElementById("view-timeline");
-
-                    const activeClasses = [
-                        "text-blue-600",
-                        "border-blue-600",
-                        "active",
-                        "dark:text-blue-400",
-                        "dark:border-blue-400",
-                    ];
-                    const inactiveClasses = [
-                        "text-gray-500",
-                        "border-transparent",
-                        "hover:text-gray-600",
-                        "hover:border-gray-300",
-                        "dark:text-gray-400",
-                        "dark:hover:text-gray-300",
-                    ];
-
-                    if (tabName === "table") {
-                        tableView.classList.remove("hidden");
-                        timelineView.classList.add("hidden");
-                        tableBtn.classList.add(...activeClasses);
-                        tableBtn.classList.remove(...inactiveClasses);
-                        timelineBtn.classList.remove(...activeClasses);
-                        timelineBtn.classList.add(...inactiveClasses);
-                    } else {
-                        tableView.classList.add("hidden");
-                        timelineView.classList.remove("hidden");
-                        tableBtn.classList.remove(...activeClasses);
-                        tableBtn.classList.add(...inactiveClasses);
-                        timelineBtn.classList.add(...activeClasses);
-                        timelineBtn.classList.remove(...inactiveClasses);
-                        // Trigger render because canvas needs visibility to size correctly
-                        renderTimeline();
-                    }
-                };
-
-                // Filters Change Event
-                if (controls) {
-                    controls.addEventListener("change", () => {
-                        saveFilters();
-                        updateTable();
-                        if (
-                            !document
-                                .getElementById("view-timeline")
-                                .classList.contains("hidden")
-                        ) {
-                            renderTimeline();
-                        }
-                    });
-                }
-                // Checkboxes Change Event
-                if (journalControls) {
-                    const checkboxes = journalControls.querySelectorAll(
-                        'input[type="checkbox"]',
-                    );
-                    checkboxes.forEach((cb) => {
-                        cb.addEventListener("change", () => {
-                            updateTable();
-                            if (
-                                !document
-                                    .getElementById("view-timeline")
-                                    .classList.contains("hidden")
-                            ) {
-                                renderTimeline();
-                                // Fix: Update stats when individual journal changes
-                                updateSelectionStats();
-                            }
-                        });
-                    });
-                }
-
-                // Initial Chart Logic (Same as before)
-                const chartCtx =
-                    document.getElementById("journalSizeChart");
-                if (chartCtx) {
-                    const journalLabels = Array.from(tableRows).map((row) =>
-                        row.children[0].textContent.trim(),
-                    );
-                    const imageCounts = Array.from(tableRows).map((row) =>
-                        // We can grab totals from dataset now or parse DOM (stick to DOM for ease here)
-                        // Actually, we can just read the data from dataset more cleanly:
-                        DATASET_RESULTS[row.dataset.journalName]
-                            ? DATASET_RESULTS[row.dataset.journalName]
-                                  .summary.total_images
-                            : 0,
-                    );
-                    new Chart(chartCtx.getContext("2d"), {
-                        type: "bar",
-                        data: {
-                            labels: journalLabels,
-                            datasets: [
-                                {
-                                    label: "Total Image Count",
-                                    data: imageCounts,
-                                    backgroundColor:
-                                        "rgba(59, 130, 246, 0.5)",
-                                    borderColor: "rgba(59, 130, 246, 1)",
-                                    borderWidth: 1,
-                                },
-                            ],
-                        },
-                        options: {
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: {
-                                    type: "logarithmic",
-                                    beginAtZero: true,
-                                },
-                                x: {
-                                    ticks: {
-                                        autoSkip: false,
-                                        maxRotation: 90,
-                                        minRotation: 45,
-                                    },
+                            x: {
+                                ticks: {
+                                    autoSkip: false,
+                                    maxRotation: 90,
+                                    minRotation: 45,
                                 },
                             },
-                            plugins: { legend: { display: false } },
                         },
-                    });
-                }
+                        plugins: { legend: { display: false } },
+                    },
+                });
+            }
 
-                // Init
-                loadFilters();
-                updateTable();
-            });
-        </script>
-    </body>
+            // Init
+            loadFilters();
+            updateTable();
+        });
+    </script>
+</body>
+
 </html>
