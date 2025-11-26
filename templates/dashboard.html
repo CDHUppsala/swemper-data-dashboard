@@ -535,35 +535,42 @@
                         Clear
                     </button>
                 </div>
-            </div>
 
-            <!-- Canvas Wrapper: Sidebar + Scrollable Canvas -->
-            <div id="timeline-wrapper"
-                class="flex border rounded-lg bg-gray-50 dark:bg-gray-900 dark:border-gray-600 h-[600px] relative">
-                <!-- 1. Sticky Sidebar for Journal Names -->
-                <div id="timeline-sidebar"
-                    class="w-40 flex-shrink-0 overflow-hidden border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-10">
-                    <!-- Header Spacer -->
-                    <!-- Fix: Updated colors to match Canvas header (Gray-100 / Gray-800) -->
-                    <div class="h-8 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
+
+                <!-- Canvas Wrapper: Sidebar + Scrollable Canvas -->
+                <div id="timeline-wrapper"
+                    class="flex border rounded-lg bg-gray-50 dark:bg-gray-900 dark:border-gray-600 h-[600px] relative">
+                    <!-- 1. Sticky Sidebar for Journal Names -->
+                    <div id="timeline-sidebar"
+                        class="w-40 flex-shrink-0 overflow-hidden border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-10">
+                        <!-- Header Spacer -->
+                        <!-- Fix: Updated colors to match Canvas header (Gray-100 / Gray-800) -->
+                        <div class="h-8 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
+                        </div>
+                        <!-- Journal Names Container -->
+                        <div id="journal-names-list" class="flex flex-col"></div>
                     </div>
-                    <!-- Journal Names Container -->
-                    <div id="journal-names-list" class="flex flex-col"></div>
-                </div>
 
-                <!-- 2. Scrollable Canvas Container -->
-                <div id="timeline-scroll-area" class="flex-1 overflow-auto relative cursor-crosshair">
-                    <!-- The Canvas -->
-                    <canvas id="timeline-canvas"></canvas>
+                    <!-- 2. Scrollable Canvas Container -->
+                    <div id="timeline-scroll-area" class="flex-1 overflow-auto relative cursor-crosshair">
+                        <!-- The Canvas -->
+                        <canvas id="timeline-canvas"></canvas>
 
-                    <!-- Floating Tooltip -->
-                    <div id="canvas-tooltip"
-                        class="absolute hidden z-50 p-2 bg-gray-800 text-white text-xs rounded shadow-lg max-w-xs pointer-events-none">
+                        <!-- Floating Tooltip -->
+                        <div id="canvas-tooltip"
+                            class="absolute hidden z-50 p-2 bg-gray-800 text-white text-xs rounded shadow-lg max-w-xs pointer-events-none">
+                        </div>
+                    </div>
+
+                    <!-- Row Indicators Container (Overlay) -->
+                    <div id="row-indicators-container"
+                        class="absolute top-0 right-0 bottom-0 w-40 pointer-events-none overflow-hidden">
+                        <!-- Indicators will be injected here -->
+                        <div id="row-indicators-inner" class="relative w-full h-full"></div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
     </div>
 
     <script>
@@ -611,55 +618,7 @@
         }
 
         // --- GLOBAL FUNCTIONS ---
-        window.switchTab = function (tabName) {
-            const tableBtn = document.getElementById("tab-btn-table");
-            const timelineBtn = document.getElementById("tab-btn-timeline");
-            const tableView = document.getElementById("view-table");
-            const timelineView = document.getElementById("view-timeline");
-
-            const activeClasses = [
-                "text-blue-600",
-                "border-blue-600",
-                "active",
-                "dark:text-blue-400",
-                "dark:border-blue-400",
-            ];
-            const inactiveClasses = [
-                "text-gray-500",
-                "border-transparent",
-                "hover:text-gray-600",
-                "hover:border-gray-300",
-                "dark:text-gray-400",
-                "dark:hover:text-gray-300",
-            ];
-
-            if (tabName === "table") {
-                tableView.classList.remove("hidden");
-                timelineView.classList.add("hidden");
-
-                // Apply Active to Table Btn
-                tableBtn.classList.add(...activeClasses);
-                tableBtn.classList.remove(...inactiveClasses);
-
-                // Apply Inactive to Timeline Btn
-                timelineBtn.classList.remove(...activeClasses);
-                timelineBtn.classList.add(...inactiveClasses);
-            } else {
-                tableView.classList.add("hidden");
-                timelineView.classList.remove("hidden");
-
-                // Apply Inactive to Table Btn
-                tableBtn.classList.remove(...activeClasses);
-                tableBtn.classList.add(...inactiveClasses);
-
-                // Apply Active to Timeline Btn
-                timelineBtn.classList.add(...activeClasses);
-                timelineBtn.classList.remove(...inactiveClasses);
-
-                const evt = new Event("triggerTimelineRender");
-                document.dispatchEvent(evt);
-            }
-        }
+        // (switchTab moved to main script block)
 
         // Placeholders
         window.toggleAllJournals = function () { };
@@ -1134,6 +1093,7 @@
             const sidebarList =
                 document.getElementById("journal-names-list");
             const tooltip = document.getElementById("canvas-tooltip");
+            // scrollIndicator removed
 
             let canvasState = {
                 cellWidth: 24,
@@ -1479,6 +1439,48 @@
                         ctx.fillRect(x, 0, 1, canvasState.headerHeight);
                     }
                 }
+                updateRowIndicators();
+            }
+
+            function updateRowIndicators() {
+                const container = document.getElementById("row-indicators-inner");
+                if (!container) return;
+
+                // Sync vertical scroll
+                container.style.transform = `translateY(-${scrollArea.scrollTop}px)`;
+
+                // Clear existing
+                container.innerHTML = "";
+
+                if (!canvasState.journals.length) return;
+
+                // Calculate visible range
+                const scrollLeft = scrollArea.scrollLeft;
+                const clientWidth = scrollArea.clientWidth;
+                const rightEdgeYear = Math.floor((scrollLeft + clientWidth) / canvasState.cellWidth) + canvasState.minYear;
+
+                canvasState.journals.forEach((name, index) => {
+                    const yearMap = journalYearMaps[name];
+                    if (!yearMap) return;
+
+                    // Find min year for this journal
+                    const years = Object.keys(yearMap).map(Number);
+                    if (years.length === 0) return;
+                    const minYear = Math.min(...years);
+
+                    // If data starts off-screen to the right
+                    if (minYear > rightEdgeYear) {
+                        const indicator = document.createElement("div");
+                        indicator.className = "absolute right-2 bg-gray-800 text-white text-xs px-2 py-1 rounded shadow opacity-90 whitespace-nowrap z-20";
+                        // Position vertically based on row index
+                        // Top = headerHeight + rowIndex * cellHeight + (cellHeight - height)/2
+                        // Let's center it in the row
+                        const top = canvasState.headerHeight + index * canvasState.cellHeight + (canvasState.cellHeight - 24) / 2;
+                        indicator.style.top = `${top}px`;
+                        indicator.textContent = `${minYear} →`;
+                        container.appendChild(indicator);
+                    }
+                });
             }
 
             // --- CANVAS INTERACTIONS ---
@@ -1486,6 +1488,7 @@
                 // Sync Scroll
                 scrollArea.addEventListener("scroll", () => {
                     sidebar.scrollTop = scrollArea.scrollTop;
+                    updateRowIndicators();
                 });
 
                 // Mouse Move (Hover + Drag)
@@ -1806,14 +1809,18 @@
 
                 if (tabName === "table") {
                     tableView.classList.remove("hidden");
+                    tableView.style.display = "";
                     timelineView.classList.add("hidden");
+                    timelineView.style.display = "none";
                     tableBtn.classList.add(...activeClasses);
                     tableBtn.classList.remove(...inactiveClasses);
                     timelineBtn.classList.remove(...activeClasses);
                     timelineBtn.classList.add(...inactiveClasses);
                 } else {
                     tableView.classList.add("hidden");
+                    tableView.style.display = "none";
                     timelineView.classList.remove("hidden");
+                    timelineView.style.display = "";
                     tableBtn.classList.remove(...activeClasses);
                     tableBtn.classList.add(...inactiveClasses);
                     timelineBtn.classList.add(...activeClasses);
