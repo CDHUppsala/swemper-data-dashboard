@@ -316,6 +316,12 @@
                                 title="Inclusive: Selects journals where ANY active profile is present">
                                 Matches (OR)
                             </button>
+                            <span class="text-gray-300 dark:text-gray-500">/</span>
+                            <button onclick="window.selectJournalsWithRanges()"
+                                class="text-blue-600 hover:underline dark:text-blue-400"
+                                title="Selects journals that contain year ranges (e.g. 1912-1914)">
+                                Has Ranges
+                            </button>
                         </div>
                     </div>
                     <div id="journal-controls"
@@ -950,6 +956,46 @@
                 console.log(`Select Matches Complete. Selected ${matchedCount} journals.`);
 
                 // Force UI Refresh
+                updateTable();
+                if (!document.getElementById("view-timeline").classList.contains("hidden")) {
+                    renderTimeline();
+                    updateSelectionStats();
+                }
+            };
+
+            // New Function: Select journals that have year ranges
+            window.selectJournalsWithRanges = function () {
+                console.log("--- Selecting Journals with Ranges ---");
+                const jControls = document.getElementById("journal-controls");
+                if (!jControls) return;
+
+                const journalCheckboxes = jControls.querySelectorAll('input[type="checkbox"]');
+                let matchedCount = 0;
+
+                journalCheckboxes.forEach((cb) => {
+                    const journalName = cb.value;
+                    const yearMap = journalYearMaps[journalName];
+                    let hasRanges = false;
+
+                    if (yearMap) {
+                        // Check if any year has a key with a hyphen
+                        // yearMap is { yearInt: [key1, key2] }
+                        // We need to check all values in the map
+                        for (const keys of Object.values(yearMap)) {
+                            if (keys.some(k => k.includes('-'))) {
+                                hasRanges = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (hasRanges) {
+                        matchedCount++;
+                    }
+                    cb.checked = hasRanges;
+                });
+
+                console.log(`Selection Complete. Selected ${matchedCount} journals with ranges.`);
                 updateTable();
                 if (!document.getElementById("view-timeline").classList.contains("hidden")) {
                     renderTimeline();
