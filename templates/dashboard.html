@@ -1257,26 +1257,62 @@
                     selectionEnd: null,
                 };
 
-                // Calculate Date Range
+                // Calculate Date Range & Build Year Map
                 let minYear = 3000;
                 let maxYear = 1000;
+                // Map: JournalName -> { YearInt: DataKeyString }
+                // DataKeyString can be "1912" or "1912-1914"
+                const journalYearMaps = {};
+
                 try {
                     Object.keys(DATASET_RESULTS).forEach((name) => {
-                        Object.keys(DATASET_RESULTS[name].years).forEach(
-                            (yStr) => {
-                                const y = parseInt(yStr.split("-")[0]);
-                                if (y < minYear) minYear = y;
-                                if (y > maxYear) maxYear = y;
-                            },
-                        );
+                        journalYearMaps[name] = {};
+                        const journalYears = DATASET_RESULTS[name].years;
+                        
+                        // First pass: Identify min/max and populate map
+                        Object.keys(journalYears).forEach((yStr) => {
+                            // Parse range
+                            const parts = yStr.split("-");
+                            const start = parseInt(parts[0]);
+                            const end = parts.length > 1 ? parseInt(parts[1]) : start;
+
+                            if (start < minYear) minYear = start;
+                            if (end > maxYear) maxYear = end;
+
+                            // Populate Map
+                            for (let y = start; y <= end; y++) {
+                                // Priority Logic:
+                                // If we already have a mapping for this year...
+                                if (journalYearMaps[name][y]) {
+                                    const existingKey = journalYearMaps[name][y];
+                                    // If the existing key is a range (contains -) and the new key is NOT (is exact year)
+                                    // Then overwrite with the exact year.
+                                    // If both are ranges or both are single, last one wins (or we could be smarter, but exact vs range is the main conflict)
+                                    const existingIsRange = existingKey.includes("-");
+                                    const newIsRange = yStr.includes("-");
+
+                                    if (existingIsRange && !newIsRange) {
+                                        journalYearMaps[name][y] = yStr;
+                                    }
+                                    // If existing is exact and new is range, do nothing (keep exact).
+                                    // If both are ranges, maybe keep the smaller one? For now, let's just let the last one win if they are same type, 
+                                    // but usually we won't have overlapping ranges of same type in valid data.
+                                } else {
+                                    journalYearMaps[name][y] = yStr;
+                                }
+                            }
+                        });
                     });
+
                     if (minYear > maxYear) {
                         minYear = 1900;
                         maxYear = 2000;
                     }
                     canvasState.minYear = minYear;
                     canvasState.maxYear = maxYear;
-                } catch (e) {}
+                } catch (e) {
+                    console.error("Error calculating date ranges", e);
+                }
 
                 function renderTimeline() {
                     if (!ctx) return;
@@ -1351,6 +1387,7 @@
                             canvasState.headerHeight +
                             rowIndex * canvasState.cellHeight;
                         const journalData = DATASET_RESULTS[journalName];
+                        const yearMap = journalYearMaps[journalName] || {};
 
                         // Bottom border for row
                         ctx.fillStyle = COLORS.border;
@@ -1364,8 +1401,10 @@
                             const x =
                                 (year - canvasState.minYear) *
                                 canvasState.cellWidth;
-                            const yearKey = String(year);
-                            const yearData = journalData.years[yearKey];
+                            
+                            // Resolve Data Key from Map
+                            const yearKey = yearMap[year];
+                            const yearData = yearKey ? journalData.years[yearKey] : null;
 
                             // Background Cell
                             if (!yearData) {
@@ -1547,9 +1586,9 @@
                             const journalName =
                                 canvasState.journals[rowIndex];
                             const journalData = DATASET_RESULTS[journalName];
-                            const yearKey = String(year);
-                            const yearData =
-                                journalData.years[yearKey];
+                            const yearMap = journalYearMaps[journalName] || {};
+                            const yearKey = yearMap[year];
+                            const yearData = yearKey ? journalData.years[yearKey] : null;
 
                             // Show Tooltip
                             tooltip.classList.remove("hidden");
@@ -1564,7 +1603,9 @@
                             } else {
                                 const activeProfiles =
                                     getSelectedProfiles();
-                                let content = `<strong>${journalName} (${year})</strong><br/><hr class="my-1 border-gray-600"/>`;
+                                // Show Range in tooltip if it's a range
+                                const displayYear = yearKey.includes("-") ? `${year} [${yearKey}]` : year;
+                                let content = `<strong>${journalName} (${displayYear})</strong><br/><hr class="my-1 border-gray-600"/>`;
                                 activeProfiles.forEach((p) => {
                                     let missing = 0;
                                     if (p === "Texts") {

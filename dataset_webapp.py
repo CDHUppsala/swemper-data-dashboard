@@ -396,4 +396,4 @@ if __name__ == '__main__':
             f"✅ Server started. Open http://127.0.0.1:9092 to begin scanning '{ROOT_DIR.name}'.")
 
     TEMP_DIR.mkdir(exist_ok=True)
-    app.run(host='0.0.0.0', port=9092, debug=False)
+    app.run(host='0.0.0.0', port=9093, debug=False)
