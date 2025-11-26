@@ -558,7 +558,7 @@
 
                         <!-- Floating Tooltip -->
                         <div id="canvas-tooltip"
-                            class="absolute hidden z-50 p-2 bg-gray-800 text-white text-xs rounded shadow-lg max-w-xs pointer-events-none">
+                            class="absolute hidden z-50 p-2 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap pointer-events-none">
                         </div>
                     </div>
 
@@ -1659,8 +1659,39 @@
                             tooltip.innerHTML = tooltipHTML;
                             // Revert to using x/y (relative to canvas/scroll area) as requested.
                             // This ensures the tooltip moves correctly with the scroll and is positioned relative to the canvas content.
-                            tooltip.style.left = `${x + 15}px`;
-                            tooltip.style.top = `${y + 15}px`;
+                            // Position Tooltip
+                            const tooltipRect = tooltip.getBoundingClientRect();
+                            const scrollAreaRect = scrollArea.getBoundingClientRect();
+
+                            // Default: Bottom-Right
+                            let top = y + 15;
+                            let left = x + 15;
+
+                            // Check Vertical Overflow (relative to viewport)
+                            // We need screen coordinates for the check, but we set style.top relative to the container (canvas)
+                            // The 'y' variable is relative to the canvas top-left.
+
+                            // Calculate screen Y of the proposed bottom of the tooltip
+                            // canvas.getBoundingClientRect().top gives us the canvas top on screen
+                            // But wait, 'y' is derived from e.clientY - rect.top. So 'y' is offset from canvas top.
+                            // The canvas moves with scroll.
+
+                            // Let's simplify: 
+                            // Visible area bottom (relative to canvas top) = scrollArea.scrollTop + scrollArea.clientHeight
+                            // Actually, simpler: check screen coordinates.
+
+                            const viewportHeight = window.innerHeight;
+                            const tooltipHeight = tooltip.offsetHeight;
+
+                            // Check if tooltip bottom goes below the scroll area's bottom edge
+                            // scrollAreaRect.bottom is the screen coordinate of the container's bottom
+                            if (e.clientY + 15 + tooltipHeight > scrollAreaRect.bottom) {
+                                // Flip to top
+                                top = y - tooltipHeight - 10;
+                            }
+
+                            tooltip.style.left = `${left}px`;
+                            tooltip.style.top = `${top}px`;
                             tooltip.classList.remove("hidden");
                         } else {
                             tooltip.classList.add("hidden");
