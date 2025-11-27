@@ -242,6 +242,10 @@ def year_detail(journal_name, year_str):
     source_profile = PROFILES['images']
 
     image_dir = journal_dir / Path(*source_profile['path_parts']) / year_str
+    
+    if not image_dir.exists():
+        return render_template('year.html', journal_name=journal_name, year_str=year_str, missing_files=None, source_accessible=False)
+
     image_files = [f for f in image_dir.iterdir() if f.is_file(
     ) and f.name.lower().endswith(source_profile['extension'])]
 
@@ -260,7 +264,7 @@ def year_detail(journal_name, year_str):
         if missing_files:
             missing_files_by_profile[name] = sorted(missing_files)
 
-    return render_template('year.html', journal_name=journal_name, year_str=year_str, missing_files=missing_files_by_profile)
+    return render_template('year.html', journal_name=journal_name, year_str=year_str, missing_files=missing_files_by_profile, source_accessible=True)
 
 
 @app.route('/changelog')
