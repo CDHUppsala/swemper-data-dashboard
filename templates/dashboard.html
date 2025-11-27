@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard - All Journals</title>
+    <title>Swemper Dataset Explorer Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -182,10 +182,11 @@
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
             <div>
                 <h1 class="text-4xl font-bold text-gray-800 dark:text-white">
-                    All Journals Overview
+                    Swemper Dataset Explorer: Overview
                 </h1>
                 <p class="text-gray-500 dark:text-gray-400 mt-1">
-                    Scanned at: {{ data.metadata.scan_time }} UTC
+                    Scanned at: {{ data.metadata.scan_time }} UTC <br>
+                    <span id="global-stats">Loading stats...</span>
                 </p>
             </div>
             <div class="flex items-center gap-4 mt-4 md:mt-0">
@@ -224,7 +225,7 @@
         <div class="bg-white p-6 rounded-lg shadow-md mb-8 dark:bg-gray-800">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200">
-                    Total Images per Journal
+                    Total Data per Journal
                 </h2>
                 <div class="flex items-center gap-4">
                     <div class="flex items-center">
@@ -2043,9 +2044,56 @@
                 }
             };
 
+            // Update Global Stats Function
+            window.updateGlobalStats = function () {
+                let totalImages = 0;
+                const profileTotals = {};
+
+                Object.values(DATASET_RESULTS).forEach(d => {
+                    const total = d.summary.total_images || 0;
+                    totalImages += total;
+
+                    if (d.summary.profile_counts) {
+                        Object.entries(d.summary.profile_counts).forEach(([profile, missing]) => {
+                            // Handle texts_group special case
+                            let pName = profile;
+                            let mCount = missing;
+
+                            if (profile === 'texts_group') {
+                                pName = 'Texts';
+                                mCount = missing.missing_coverage || 0;
+                            }
+
+                            if (!profileTotals[pName]) profileTotals[pName] = 0;
+                            // Present = Total for this journal - Missing for this profile
+                            // Note: This assumes every image *should* have every profile.
+                            // If that's not true, this logic might need adjustment, but based on previous charts, this is the standard.
+                            const present = Math.max(0, total - mCount);
+                            profileTotals[pName] += present;
+                        });
+                    }
+                });
+
+                // Format Output
+                const parts = [];
+                parts.push(`Total Pages: ${totalImages.toLocaleString()}`);
+
+                // Sort profiles
+                const sortedProfiles = Object.keys(profileTotals).sort();
+                sortedProfiles.forEach(p => {
+                    parts.push(`${p}: ${profileTotals[p].toLocaleString()}`);
+                });
+
+                const statsEl = document.getElementById('global-stats');
+                if (statsEl) {
+                    statsEl.innerHTML = parts.join(' <span class="text-gray-300 dark:text-gray-600 mx-1">|</span> ');
+                }
+            };
+
             // Init
             loadFilters();
             updateTable();
+            updateGlobalStats();
         });
     </script>
 </body>
