@@ -1,851 +1,781 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Journal: {{ journal_name }}</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script>
-            tailwind.config = { darkMode: "class" };
-            if (
-                localStorage.getItem("theme") === "dark" ||
-                (!("theme" in localStorage) &&
-                    window.matchMedia("(prefers-color-scheme: dark)").matches)
-            ) {
-                document.documentElement.classList.add("dark");
-            } else {
-                document.documentElement.classList.remove("dark");
-            }
-        </script>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <style>
-            .tooltip {
-                position: relative;
-                display: inline-block;
-                cursor: pointer;
-            }
-            .tooltip .tooltip-text {
-                visibility: hidden;
-                width: 240px;
-                background-color: #1f2937;
-                color: #fff;
-                text-align: left;
-                border-radius: 6px;
-                padding: 10px;
-                position: absolute;
-                z-index: 50;
-                bottom: 125%;
-                left: 50%;
-                margin-left: -120px;
-                opacity: 0;
-                transition: opacity 0.3s;
-            }
-            .tooltip .tooltip-text::after {
-                content: "";
-                position: absolute;
-                top: 100%;
-                left: 50%;
-                margin-left: -5px;
-                border-width: 5px;
-                border-style: solid;
-                border-color: #1f2937 transparent transparent transparent;
-            }
-            .tooltip:hover .tooltip-text {
-                visibility: visible;
-                opacity: 1;
-            }
 
-            /* Ring Styles */
-            .ring-container {
-                position: relative;
-                display: inline-block;
-            }
-            .ring-bg {
-                fill: none;
-                stroke: #e5e7eb;
-            }
-            .dark .ring-bg {
-                stroke: #374151;
-            }
-            .ring-progress {
-                fill: none;
-                stroke-linecap: round;
-                transform: rotate(-90deg);
-                transform-origin: 50% 50%;
-                transition: stroke-dashoffset 0.5s ease-in-out;
-            }
-            .dark .ring-container:hover .ring-bg {
-                stroke: #4b5563;
-            }
-        </style>
-    </head>
-    <body
-        class="bg-gray-100 dark:bg-gray-900 font-sans p-4 md:p-8 transition-colors duration-200"
-    >
-        <div class="container mx-auto">
-            <header
-                class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6"
-            >
-                <div>
-                    <nav class="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                        <a
-                            href="{{ url_for('dashboard') }}"
-                            class="hover:underline"
-                            >Dashboard</a
-                        >
-                        &gt; {{ journal_name }}
-                    </nav>
-                    <h1
-                        class="text-4xl font-bold text-gray-800 dark:text-white"
-                    >
-                        Journal: {{ journal_name }}
-                    </h1>
-                </div>
-                <div class="flex items-center gap-4 mt-4 md:mt-0">
-                    <button
-                        id="theme-toggle"
-                        class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none"
-                        onclick="toggleDarkMode()"
-                    >
-                        <svg
-                            id="theme-toggle-light-icon"
-                            class="hidden w-5 h-5"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                        >
-                            <path
-                                d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
-                                fill-rule="evenodd"
-                                clip-rule="evenodd"
-                            ></path>
-                        </svg>
-                        <svg
-                            id="theme-toggle-dark-icon"
-                            class="hidden w-5 h-5"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                        >
-                            <path
-                                d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"
-                            ></path>
-                        </svg>
-                    </button>
-                    <nav class="space-x-4">
-                        <a
-                            href="{{ url_for('index') }}"
-                            class="text-blue-600 hover:underline dark:text-blue-400"
-                            >Re-Scan</a
-                        >
-                        <a
-                            href="{{ url_for('changelog') }}"
-                            class="text-blue-600 hover:underline dark:text-blue-400"
-                            >View Changelog</a
-                        >
-                    </nav>
-                </div>
-            </header>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Journal: {{ journal_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: "class" };
+        if (
+            localStorage.getItem("theme") === "dark" ||
+            (!("theme" in localStorage) &&
+                window.matchMedia("(prefers-color-scheme: dark)").matches)
+        ) {
+            document.documentElement.classList.add("dark");
+        } else {
+            document.documentElement.classList.remove("dark");
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
 
-            <!-- Bar Chart -->
-            <div
-                class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8"
-            >
-                <h2
-                    class="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-4"
-                >
-                    Image Count Over Time
-                </h2>
-                <div class="relative h-96">
-                    <canvas id="yearSizeChart"></canvas>
-                </div>
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 240px;
+            background-color: #1f2937;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 50;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -120px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1f2937 transparent transparent transparent;
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Ring Styles */
+        .ring-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .ring-bg {
+            fill: none;
+            stroke: #e5e7eb;
+        }
+
+        .dark .ring-bg {
+            stroke: #374151;
+        }
+
+        .ring-progress {
+            fill: none;
+            stroke-linecap: round;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+            transition: stroke-dashoffset 0.5s ease-in-out;
+        }
+
+        .dark .ring-container:hover .ring-bg {
+            stroke: #4b5563;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-900 font-sans p-4 md:p-8 transition-colors duration-200">
+    <div class="container mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+            <div>
+                <nav class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                    <a href="{{ url_for('dashboard') }}" class="hover:underline">Dashboard</a>
+                    &gt; {{ journal_name }}
+                </nav>
+                <h1 class="text-4xl font-bold text-gray-800 dark:text-white">
+                    Journal: {{ journal_name }}
+                </h1>
             </div>
+            <div class="flex items-center gap-4 mt-4 md:mt-0">
+                <button id="theme-toggle"
+                    class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none"
+                    onclick="toggleDarkMode()">
+                    <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                            d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
+                            fill-rule="evenodd" clip-rule="evenodd"></path>
+                    </svg>
+                    <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+                    </svg>
+                </button>
+                <nav class="space-x-4">
+                    <a href="{{ url_for('index') }}"
+                        class="text-blue-600 hover:underline dark:text-blue-400">Re-Scan</a>
+                    <a href="{{ url_for('changelog') }}" class="text-blue-600 hover:underline dark:text-blue-400">View
+                        Changelog</a>
+                </nav>
+            </div>
+        </header>
 
-            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                <!-- Filter Controls Header -->
-                <div
-                    class="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 p-4 gap-4"
-                >
-                    <!-- 1. Profile Filters -->
-                    <div class="flex-1">
-                        <label
-                            class="font-semibold text-gray-700 dark:text-gray-200 block mb-2 border-b border-gray-200 dark:border-gray-600 pb-1"
-                            >Data Profiles (Stats & Legend):</label
-                        >
-                        <div
-                            id="filter-controls"
-                            class="flex flex-wrap gap-x-6 gap-y-2"
-                        >
-                            {% for profile in filter_profiles %}
-                            <div class="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    id="{{ profile }}"
-                                    name="{{ profile }}"
-                                    value="{{ profile }}"
-                                    checked
-                                    class="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer dark:bg-gray-600 dark:border-gray-500"
-                                />
-                                <label
-                                    for="{{ profile }}"
-                                    class="text-gray-600 dark:text-gray-300 cursor-pointer flex items-center"
-                                >
-                                    <span
-                                        class="color-dot w-3 h-3 rounded-full mr-2 inline-block bg-gray-400"
-                                        data-profile="{{ profile }}"
-                                    ></span>
-                                    {{ profile }}
-                                </label>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <!-- 2. Row Visibility Filters -->
-                    <div class="flex flex-col items-start md:items-end">
-                        <span
-                            class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 dark:text-gray-400"
-                            >Filter Rows</span
-                        >
-                        <div class="flex gap-2">
-                            <button
-                                onclick="setFilterMode('ALL')"
-                                id="btn-mode-all"
-                                class="px-3 py-1.5 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors shadow-sm"
-                            >
-                                Show All
-                            </button>
-                            <button
-                                onclick="setFilterMode('AND')"
-                                id="btn-mode-and"
-                                class="px-3 py-1.5 text-sm font-medium rounded-md bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors shadow-sm"
-                                title="Show years where ALL selected profiles are present"
-                            >
-                                Matches (AND)
-                            </button>
-                            <button
-                                onclick="setFilterMode('OR')"
-                                id="btn-mode-or"
-                                class="px-3 py-1.5 text-sm font-medium rounded-md bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors shadow-sm"
-                                title="Show years where ANY selected profile is present"
-                            >
-                                Matches (OR)
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table
-                        id="years-table"
-                        class="min-w-full divide-y divide-gray-200 dark:divide-gray-700"
-                    >
-                        <thead class="bg-gray-50 dark:bg-gray-700">
-                            <tr>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300"
-                                >
-                                    Year / Range
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300"
-                                >
-                                    Image Count
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300"
-                                >
-                                    Complete data/metadata
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300"
-                                >
-                                    Incomplete/Missing Data
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300"
-                                >
-                                    Total Missing*
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300"
-                                >
-                                    Consistency*
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300"
-                                >
-                                    Progress
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300"
-                                >
-                                    Details
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody
-                            class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700"
-                        >
-                            {% for year, year_data in data.years|dictsort %}
-                            <tr
-                                class="year-row dark:hover:bg-gray-750"
-                                data-total-images="{{ year_data.summary.images }}"
-                                data-missing-texts-group="{{ year_data.summary.profile_counts.texts_group.missing_coverage if year_data.summary.profile_counts.texts_group is defined else 0 }}"
-                                {%
-                                for
-                                profile,
-                                count
-                                in
-                                year_data.summary.profile_counts.items()
-                                if
-                                profile
-                                !="texts_group"
-                                %}
-                                data-missing-{{
-                                profile
-                                }}="{{ count }}"
-                                {%
-                                endfor
-                                %}
-                                data-missing-texts="{{ year_data.summary.profile_counts.texts_group.missing_coverage }}"
-                            >
-                                <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white align-top"
-                                >
-                                    {{ year }}
-                                </td>
-                                <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 align-top"
-                                >
-                                    {{ "{:,}".format(year_data.summary.images)
-                                    }}
-                                </td>
-
-                                <!-- Complete Data Column -->
-                                <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 align-top"
-                                >
-                                    <div
-                                        class="flex flex-col gap-2 items-start"
-                                    >
-                                        {% set texts_group =
-                                        year_data.summary.profile_counts.texts_group
-                                        %} {% if texts_group.missing_coverage ==
-                                        0 and year_data.summary.images > 0 %}
-                                        <div>
-                                            <span
-                                                class="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                                >✅ Texts</span
-                                            >
-                                        </div>
-                                        {% endif %} {% for profile, count in
-                                        year_data.summary.profile_counts|dictsort
-                                        %} {% if profile != 'texts_group' and
-                                        count == 0 and year_data.summary.images
-                                        > 0 %}
-                                        <span
-                                            class="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                            >✅ {{ profile }}</span
-                                        >
-                                        {% endif %} {% endfor %}
-                                    </div>
-                                </td>
-
-                                <!-- Incomplete/Missing Data Column -->
-                                <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 align-top"
-                                >
-                                    <div
-                                        class="flex flex-col gap-3 items-start"
-                                    >
-                                        {% set texts_group =
-                                        year_data.summary.profile_counts.texts_group
-                                        %} {% if texts_group.missing_coverage >
-                                        0 %}
-                                        <div>
-                                            <span
-                                                class="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                                                >🟡 Texts: {{
-                                                "{:,}".format(texts_group.missing_coverage)
-                                                }} missing</span
-                                            >
-                                        </div>
-                                        {% endif %} {% for profile, count in
-                                        year_data.summary.profile_counts|dictsort
-                                        if profile != 'texts_group' and count >
-                                        0 %}
-                                        <span
-                                            class="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                                            >🟡 {{ profile }}: {{
-                                            "{:,}".format(count) }}
-                                            missing</span
-                                        >
-                                        {% endfor %}
-                                    </div>
-                                </td>
-
-                                <td
-                                    class="total-missing px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 font-semibold align-top"
-                                ></td>
-                                <td
-                                    class="consistency-percent px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 font-semibold align-top"
-                                ></td>
-                                <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 align-top"
-                                >
-                                    <div
-                                        class="ring-container"
-                                        style="width: 120px; height: 120px"
-                                    ></div>
-                                </td>
-                                <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm font-medium align-top"
-                                >
-                                    <a
-                                        href="{{ url_for('year_detail', journal_name=journal_name, year_str=year) }}"
-                                        class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                                        >Details</a
-                                    >
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <p class="text-xs text-gray-400 mt-4">
-                    * Values are calculated based on the selected profiles.
-                </p>
+        <!-- Bar Chart -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-4">
+                Image Count Over Time
+            </h2>
+            <div class="relative h-96">
+                <canvas id="yearSizeChart"></canvas>
             </div>
         </div>
-        <script>
-            // --- Theme Logic ---
-            function toggleDarkMode() {
-                if (document.documentElement.classList.contains("dark")) {
-                    document.documentElement.classList.remove("dark");
-                    localStorage.setItem("theme", "light");
-                } else {
-                    document.documentElement.classList.add("dark");
-                    localStorage.setItem("theme", "dark");
-                }
-                updateIcons();
-            }
 
-            function updateIcons() {
-                const darkIcon = document.getElementById(
-                    "theme-toggle-dark-icon",
-                );
-                const lightIcon = document.getElementById(
-                    "theme-toggle-light-icon",
-                );
-                if (document.documentElement.classList.contains("dark")) {
-                    darkIcon.classList.remove("hidden");
-                    lightIcon.classList.add("hidden");
-                } else {
-                    lightIcon.classList.remove("hidden");
-                    darkIcon.classList.add("hidden");
-                }
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <!-- Filter Controls Header -->
+            <div
+                class="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 p-4 gap-4">
+                <!-- 1. Profile Filters -->
+                <div class="flex-1">
+                    <label
+                        class="font-semibold text-gray-700 dark:text-gray-200 block mb-2 border-b border-gray-200 dark:border-gray-600 pb-1">Data
+                        Profiles (Stats & Legend):</label>
+                    <div id="filter-controls" class="flex flex-wrap gap-x-6 gap-y-2">
+                        {% for profile in filter_profiles %}
+                        <div class="flex items-center">
+                            <input type="checkbox" id="{{ profile }}" name="{{ profile }}" value="{{ profile }}" checked
+                                class="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer dark:bg-gray-600 dark:border-gray-500" />
+                            <label for="{{ profile }}"
+                                class="text-gray-600 dark:text-gray-300 cursor-pointer flex items-center">
+                                <span class="color-dot w-3 h-3 rounded-full mr-2 inline-block bg-gray-400"
+                                    data-profile="{{ profile }}"></span>
+                                {{ profile }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- 2. Row Visibility Filters -->
+                <div class="flex flex-col items-start md:items-end">
+                    <span
+                        class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 dark:text-gray-400">Filter
+                        Rows</span>
+                    <div class="flex gap-2">
+                        <button onclick="setFilterMode('ALL')" id="btn-mode-all"
+                            class="px-3 py-1.5 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors shadow-sm">
+                            Show All
+                        </button>
+                        <button onclick="setFilterMode('AND')" id="btn-mode-and"
+                            class="px-3 py-1.5 text-sm font-medium rounded-md bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                            title="Show years where ALL selected profiles are present">
+                            Matches (AND)
+                        </button>
+                        <button onclick="setFilterMode('OR')" id="btn-mode-or"
+                            class="px-3 py-1.5 text-sm font-medium rounded-md bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                            title="Show years where ANY selected profile is present">
+                            Matches (OR)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table id="years-table" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                                Year / Range
+                            </th>
+                            <th
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                                Image Count
+                            </th>
+                            <th
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                                Complete data/metadata
+                            </th>
+                            <th
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                                Incomplete/Missing Data
+                            </th>
+                            <th
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                                Total Missing*
+                            </th>
+                            <th
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                                Consistency*
+                            </th>
+                            <th
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                                Progress
+                            </th>
+                            <th
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                                Details
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                        {% for year, year_data in data.years|dictsort %}
+                        <tr class="year-row dark:hover:bg-gray-750" data-total-images="{{ year_data.summary.images }}"
+                            data-missing-texts-group="{{ year_data.summary.profile_counts.texts_group.missing_coverage if year_data.summary.profile_counts.texts_group is defined else 0 }}"
+                            {% for profile, count in year_data.summary.profile_counts.items() if profile !="texts_group"
+                            %} data-missing-{{ profile }}="{{ count }}" {% endfor %}
+                            data-missing-texts="{{ year_data.summary.profile_counts.texts_group.missing_coverage }}">
+                            <td
+                                class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white align-top">
+                                {{ year }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 align-top">
+                                {{ "{:,}".format(year_data.summary.images)
+                                }}
+                            </td>
+
+                            <!-- Complete Data Column -->
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 align-top">
+                                <div class="flex flex-col gap-2 items-start">
+                                    {% set texts_group =
+                                    year_data.summary.profile_counts.texts_group
+                                    %} {% if texts_group.missing_coverage ==
+                                    0 and year_data.summary.images > 0 %}
+                                    <div>
+                                        <span
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">✅
+                                            Texts</span>
+                                    </div>
+                                    {% endif %} {% for profile, count in
+                                    year_data.summary.profile_counts|dictsort
+                                    %} {% if profile != 'texts_group' and
+                                    count == 0 and year_data.summary.images
+                                    > 0 %}
+                                    <span
+                                        class="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">✅
+                                        {{ profile }}</span>
+                                    {% endif %} {% endfor %}
+                                </div>
+                            </td>
+
+                            <!-- Incomplete/Missing Data Column -->
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 align-top">
+                                <div class="flex flex-col gap-3 items-start">
+                                    {% set texts_group =
+                                    year_data.summary.profile_counts.texts_group
+                                    %} {% if texts_group.missing_coverage >
+                                    0 %}
+                                    <div>
+                                        <span
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">🟡
+                                            Texts: {{
+                                            "{:,}".format(texts_group.missing_coverage)
+                                            }} missing</span>
+                                    </div>
+                                    {% endif %} {% for profile, count in
+                                    year_data.summary.profile_counts|dictsort
+                                    if profile != 'texts_group' and count >
+                                    0 %}
+                                    <span
+                                        class="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">🟡
+                                        {{ profile }}: {{
+                                        "{:,}".format(count) }}
+                                        missing</span>
+                                    {% endfor %}
+                                </div>
+                            </td>
+
+                            <td
+                                class="total-missing px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 font-semibold align-top">
+                            </td>
+                            <td
+                                class="consistency-percent px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 font-semibold align-top">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 align-top">
+                                <div class="ring-container" style="width: 120px; height: 120px"></div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium align-top">
+                                <a href="{{ url_for('year_detail', journal_name=journal_name, year_str=year) }}"
+                                    class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">Details</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-xs text-gray-400 mt-4">
+                * Values are calculated based on the selected profiles.
+            </p>
+        </div>
+    </div>
+    <script>
+        // --- Theme Logic ---
+        function toggleDarkMode() {
+            if (document.documentElement.classList.contains("dark")) {
+                document.documentElement.classList.remove("dark");
+                localStorage.setItem("theme", "light");
+            } else {
+                document.documentElement.classList.add("dark");
+                localStorage.setItem("theme", "dark");
             }
             updateIcons();
+        }
 
-            // --- State for Row Filtering ---
-            let currentFilterMode = "ALL"; // 'ALL', 'AND', 'OR'
+        function updateIcons() {
+            const darkIcon = document.getElementById(
+                "theme-toggle-dark-icon",
+            );
+            const lightIcon = document.getElementById(
+                "theme-toggle-light-icon",
+            );
+            if (document.documentElement.classList.contains("dark")) {
+                darkIcon.classList.remove("hidden");
+                lightIcon.classList.add("hidden");
+            } else {
+                lightIcon.classList.remove("hidden");
+                darkIcon.classList.add("hidden");
+            }
+        }
+        updateIcons();
 
-            window.setFilterMode = function (mode) {
-                currentFilterMode = mode;
-                // Update Button UI
-                updateFilterButtons();
-                // Apply Logic
-                applyRowVisibility();
-            };
+        // --- State for Row Filtering ---
+        let currentFilterMode = "ALL"; // 'ALL', 'AND', 'OR'
 
-            function updateFilterButtons() {
-                const btnAll = document.getElementById("btn-mode-all");
-                const btnAnd = document.getElementById("btn-mode-and");
-                const btnOr = document.getElementById("btn-mode-or");
+        window.setFilterMode = function (mode) {
+            currentFilterMode = mode;
+            // Update Button UI
+            updateFilterButtons();
+            // Apply Logic
+            applyRowVisibility();
+        };
 
-                const activeClasses = [
-                    "bg-blue-600",
-                    "text-white",
-                    "hover:bg-blue-700",
-                    "dark:bg-blue-500",
-                    "dark:hover:bg-blue-600",
-                    "border-transparent",
-                ];
-                const inactiveClasses = [
-                    "bg-white",
-                    "text-gray-700",
-                    "border-gray-300",
-                    "hover:bg-gray-50",
-                    "dark:bg-gray-800",
-                    "dark:text-gray-200",
-                    "dark:border-gray-600",
-                    "dark:hover:bg-gray-700",
-                ];
+        function updateFilterButtons() {
+            const btnAll = document.getElementById("btn-mode-all");
+            const btnAnd = document.getElementById("btn-mode-and");
+            const btnOr = document.getElementById("btn-mode-or");
 
-                function setActive(btn) {
-                    btn.classList.remove(...inactiveClasses);
-                    btn.classList.add(...activeClasses);
-                }
-                function setInactive(btn) {
-                    btn.classList.remove(...activeClasses);
-                    btn.classList.add(...inactiveClasses);
-                }
+            const activeClasses = [
+                "bg-blue-600",
+                "text-white",
+                "hover:bg-blue-700",
+                "dark:bg-blue-500",
+                "dark:hover:bg-blue-600",
+                "border-transparent",
+            ];
+            const inactiveClasses = [
+                "bg-white",
+                "text-gray-700",
+                "border-gray-300",
+                "hover:bg-gray-50",
+                "dark:bg-gray-800",
+                "dark:text-gray-200",
+                "dark:border-gray-600",
+                "dark:hover:bg-gray-700",
+            ];
 
-                if (currentFilterMode === "ALL") setActive(btnAll);
-                else setInactive(btnAll);
-
-                if (currentFilterMode === "AND") setActive(btnAnd);
-                else setInactive(btnAnd);
-
-                if (currentFilterMode === "OR") setActive(btnOr);
-                else setInactive(btnOr);
+            function setActive(btn) {
+                btn.classList.remove(...inactiveClasses);
+                btn.classList.add(...activeClasses);
+            }
+            function setInactive(btn) {
+                btn.classList.remove(...activeClasses);
+                btn.classList.add(...inactiveClasses);
             }
 
-            // Global placeholder
-            window.applyRowVisibility = function () {};
+            if (currentFilterMode === "ALL") setActive(btnAll);
+            else setInactive(btnAll);
 
-            document.addEventListener("DOMContentLoaded", function () {
-                const controls = document.getElementById("filter-controls");
-                const tableRows = document.querySelectorAll(".year-row");
-                const storageKey = "dashboardProfileFilters"; // reusing same key to keep consistency across views?
-                // Actually journal filters might be independent. Let's use a specific key if needed, or just defaults.
-                // Keeping same key as Dashboard allows "I filtered these profiles on dashboard, now I see same on journal".
-                // That is usually preferred.
+            if (currentFilterMode === "AND") setActive(btnAnd);
+            else setInactive(btnAnd);
 
-                const PROFILE_COLORS = {
-                    Texts: "#10b981",
-                    xml: "#3b82f6",
-                    altoxml: "#f59e0b",
-                    "metadata-v1": "#8b5cf6",
-                    "metadata-v2": "#ec4899",
-                    avif: "#f9ec16",
-                    default: "#6b7280",
-                };
+            if (currentFilterMode === "OR") setActive(btnOr);
+            else setInactive(btnOr);
+        }
 
-                document.querySelectorAll(".color-dot").forEach((dot) => {
-                    const profile = dot.dataset.profile;
-                    const color =
-                        PROFILE_COLORS[profile] ||
-                        PROFILE_COLORS[profile.split("-")[0]] ||
-                        PROFILE_COLORS["default"];
-                    dot.style.backgroundColor = color;
-                });
+        // Global placeholder
+        window.applyRowVisibility = function () { };
 
-                function toCamelCase(str) {
-                    return str.replace(/-([a-z0-9])/g, (group) =>
-                        group[1].toUpperCase(),
-                    );
-                }
+        document.addEventListener("DOMContentLoaded", function () {
+            const controls = document.getElementById("filter-controls");
+            const tableRows = document.querySelectorAll(".year-row");
+            const storageKey = "dashboardProfileFilters"; // reusing same key to keep consistency across views?
+            // Actually journal filters might be independent. Let's use a specific key if needed, or just defaults.
+            // Keeping same key as Dashboard allows "I filtered these profiles on dashboard, now I see same on journal".
+            // That is usually preferred.
 
-                function getSelectedProfiles() {
-                    const selected = new Set();
+            const PROFILE_COLORS = {
+                Texts: "#10b981",
+                xml: "#3b82f6",
+                altoxml: "#f59e0b",
+                "metadata-v1": "#8b5cf6",
+                "metadata-v2": "#ec4899",
+                avif: "#f9ec16",
+                default: "#6b7280",
+            };
+
+            document.querySelectorAll(".color-dot").forEach((dot) => {
+                const profile = dot.dataset.profile;
+                const color =
+                    PROFILE_COLORS[profile] ||
+                    PROFILE_COLORS[profile.split("-")[0]] ||
+                    PROFILE_COLORS["default"];
+                dot.style.backgroundColor = color;
+            });
+
+            function toCamelCase(str) {
+                return str.replace(/-([a-z0-9])/g, (group) =>
+                    group[1].toUpperCase(),
+                );
+            }
+
+            function getSelectedProfiles() {
+                const selected = new Set();
+                controls
+                    .querySelectorAll('input[type="checkbox"]:checked')
+                    .forEach((cb) => selected.add(cb.value));
+                return selected;
+            }
+
+            function saveFilters() {
+                const selected = Array.from(getSelectedProfiles());
+                localStorage.setItem(storageKey, JSON.stringify(selected));
+            }
+
+            function loadFilters() {
+                const saved = localStorage.getItem(storageKey);
+                if (saved) {
+                    const selectedProfiles = new Set(JSON.parse(saved));
                     controls
-                        .querySelectorAll('input[type="checkbox"]:checked')
-                        .forEach((cb) => selected.add(cb.value));
-                    return selected;
+                        .querySelectorAll('input[type="checkbox"]')
+                        .forEach((cb) => {
+                            cb.checked = selectedProfiles.has(cb.value);
+                        });
                 }
+            }
 
-                function saveFilters() {
-                    const selected = Array.from(getSelectedProfiles());
-                    localStorage.setItem(storageKey, JSON.stringify(selected));
-                }
+            function renderActivityRings(container, ringData) {
+                container.innerHTML = "";
+                const size = 120;
+                const strokeWidth = 5;
+                const gap = 2;
+                const center = size / 2;
+                const svg = document.createElementNS(
+                    "http://www.w3.org/2000/svg",
+                    "svg",
+                );
+                svg.setAttribute("width", size);
+                svg.setAttribute("height", size);
+                svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
 
-                function loadFilters() {
-                    const saved = localStorage.getItem(storageKey);
-                    if (saved) {
-                        const selectedProfiles = new Set(JSON.parse(saved));
-                        controls
-                            .querySelectorAll('input[type="checkbox"]')
-                            .forEach((cb) => {
-                                cb.checked = selectedProfiles.has(cb.value);
-                            });
-                    }
-                }
+                const maxRadius = size / 2 - strokeWidth / 2;
 
-                function renderActivityRings(container, ringData) {
-                    container.innerHTML = "";
-                    const size = 120;
-                    const strokeWidth = 5;
-                    const gap = 2;
-                    const center = size / 2;
-                    const svg = document.createElementNS(
+                ringData.forEach((ring, index) => {
+                    const radius =
+                        maxRadius - index * (strokeWidth + gap);
+                    if (radius <= 0) return;
+                    const circumference = 2 * Math.PI * radius;
+                    const offset =
+                        circumference -
+                        (ring.percent / 100) * circumference;
+                    const color =
+                        PROFILE_COLORS[ring.profile] ||
+                        PROFILE_COLORS[ring.profile.split("-")[0]] ||
+                        PROFILE_COLORS["default"];
+
+                    const bgCircle = document.createElementNS(
                         "http://www.w3.org/2000/svg",
-                        "svg",
+                        "circle",
                     );
-                    svg.setAttribute("width", size);
-                    svg.setAttribute("height", size);
-                    svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+                    bgCircle.setAttribute("cx", center);
+                    bgCircle.setAttribute("cy", center);
+                    bgCircle.setAttribute("r", radius);
+                    bgCircle.setAttribute("stroke-width", strokeWidth);
+                    bgCircle.setAttribute("class", "ring-bg");
+                    bgCircle.style.fill = "none";
+                    svg.appendChild(bgCircle);
 
-                    const maxRadius = size / 2 - strokeWidth / 2;
+                    const progressCircle = document.createElementNS(
+                        "http://www.w3.org/2000/svg",
+                        "circle",
+                    );
+                    progressCircle.setAttribute("cx", center);
+                    progressCircle.setAttribute("cy", center);
+                    progressCircle.setAttribute("r", radius);
+                    progressCircle.setAttribute("stroke", color);
+                    progressCircle.setAttribute(
+                        "stroke-width",
+                        strokeWidth,
+                    );
+                    progressCircle.setAttribute(
+                        "stroke-dasharray",
+                        circumference,
+                    );
+                    progressCircle.setAttribute(
+                        "stroke-dashoffset",
+                        offset,
+                    );
+                    progressCircle.setAttribute("class", "ring-progress");
+                    progressCircle.style.fill = "none";
+                    progressCircle.style.stroke = color;
+                    progressCircle.style.transition =
+                        "stroke-dashoffset 0.5s ease-in-out";
+                    progressCircle.style.transform = "rotate(-90deg)";
+                    progressCircle.style.transformOrigin = "50% 50%";
+                    svg.appendChild(progressCircle);
+                });
+                container.appendChild(svg);
+            }
 
-                    ringData.forEach((ring, index) => {
-                        const radius =
-                            maxRadius - index * (strokeWidth + gap);
-                        if (radius <= 0) return;
-                        const circumference = 2 * Math.PI * radius;
-                        const offset =
-                            circumference -
-                            (ring.percent / 100) * circumference;
-                        const color =
-                            PROFILE_COLORS[ring.profile] ||
-                            PROFILE_COLORS[ring.profile.split("-")[0]] ||
-                            PROFILE_COLORS["default"];
+            // --- ROW FILTERING LOGIC ---
+            window.applyRowVisibility = function () {
+                const activeProfiles = Array.from(getSelectedProfiles());
 
-                        const bgCircle = document.createElementNS(
-                            "http://www.w3.org/2000/svg",
-                            "circle",
-                        );
-                        bgCircle.setAttribute("cx", center);
-                        bgCircle.setAttribute("cy", center);
-                        bgCircle.setAttribute("r", radius);
-                        bgCircle.setAttribute("stroke-width", strokeWidth);
-                        bgCircle.setAttribute("class", "ring-bg");
-                        bgCircle.style.fill = "none";
-                        svg.appendChild(bgCircle);
+                tableRows.forEach((row) => {
+                    // 1. If Show All, always show
+                    if (currentFilterMode === "ALL") {
+                        row.style.display = "";
+                        return;
+                    }
 
-                        const progressCircle = document.createElementNS(
-                            "http://www.w3.org/2000/svg",
-                            "circle",
-                        );
-                        progressCircle.setAttribute("cx", center);
-                        progressCircle.setAttribute("cy", center);
-                        progressCircle.setAttribute("r", radius);
-                        progressCircle.setAttribute("stroke", color);
-                        progressCircle.setAttribute(
-                            "stroke-width",
-                            strokeWidth,
-                        );
-                        progressCircle.setAttribute(
-                            "stroke-dasharray",
-                            circumference,
-                        );
-                        progressCircle.setAttribute(
-                            "stroke-dashoffset",
-                            offset,
-                        );
-                        progressCircle.setAttribute("class", "ring-progress");
-                        progressCircle.style.fill = "none";
-                        progressCircle.style.stroke = color;
-                        progressCircle.style.transition =
-                            "stroke-dashoffset 0.5s ease-in-out";
-                        progressCircle.style.transform = "rotate(-90deg)";
-                        progressCircle.style.transformOrigin = "50% 50%";
-                        svg.appendChild(progressCircle);
-                    });
-                    container.appendChild(svg);
-                }
+                    // 2. Filter Logic
+                    const totalImages =
+                        parseInt(row.dataset.totalImages, 10) || 0;
+                    let hasData = currentFilterMode === "AND"; // AND=true (fail on missing), OR=false (succeed on match)
 
-                // --- ROW FILTERING LOGIC ---
-                window.applyRowVisibility = function () {
-                    const activeProfiles = Array.from(getSelectedProfiles());
+                    if (totalImages > 0) {
+                        if (activeProfiles.length === 0) {
+                            hasData = false;
+                        } else {
+                            for (const profile of activeProfiles) {
+                                // Retrieve missing count from DOM attributes
+                                let missingRaw;
+                                if (profile === "Texts") {
+                                    missingRaw =
+                                        row.dataset.missingTexts;
+                                } else {
+                                    const key =
+                                        "missing" +
+                                        toCamelCase(profile);
+                                    // Some profiles (e.g. metadata-v1) become missingMetadataV1
+                                    // Standard profile keys are lowercase in HTML (missing-metadata-v1)
+                                    // dataset API auto-camels them.
+                                    // Note: toCamelCase function above handles simple cases.
+                                    // We should rely on dataset key lookup if possible or standardized key.
+                                    // Given the complexity of dataset keys, let's try direct attribute access
+                                    // if dataset lookup is tricky.
+                                    // But dataset['missingMetadataV1'] should work if data-missing-metadata-v1 exists.
+                                    // Let's rely on our manual construction:
+                                    // data-missing-{{ profile }}
+                                    // Let's use getAttribute for safety/simplicity
+                                    missingRaw = row.getAttribute(
+                                        `data-missing-${profile}`,
+                                    );
+                                }
 
-                    tableRows.forEach((row) => {
-                        // 1. If Show All, always show
-                        if (currentFilterMode === "ALL") {
-                            row.style.display = "";
-                            return;
-                        }
+                                // Default to "Total Images" (Complete Failure) if attribute is missing
+                                let missing = totalImages;
+                                if (
+                                    missingRaw !== null &&
+                                    missingRaw !== undefined
+                                ) {
+                                    missing = parseInt(missingRaw, 10);
+                                }
 
-                        // 2. Filter Logic
-                        const totalImages =
-                            parseInt(row.dataset.totalImages, 10) || 0;
-                        let hasData = currentFilterMode === "AND"; // AND=true (fail on missing), OR=false (succeed on match)
+                                const present = totalImages - missing;
 
-                        if (totalImages > 0) {
-                            if (activeProfiles.length === 0) {
-                                hasData = false;
-                            } else {
-                                for (const profile of activeProfiles) {
-                                    // Retrieve missing count from DOM attributes
-                                    let missingRaw;
-                                    if (profile === "Texts") {
-                                        missingRaw =
-                                            row.dataset.missingTexts;
-                                    } else {
-                                        const key =
-                                            "missing" +
-                                            toCamelCase(profile);
-                                        // Some profiles (e.g. metadata-v1) become missingMetadataV1
-                                        // Standard profile keys are lowercase in HTML (missing-metadata-v1)
-                                        // dataset API auto-camels them.
-                                        // Note: toCamelCase function above handles simple cases.
-                                        // We should rely on dataset key lookup if possible or standardized key.
-                                        // Given the complexity of dataset keys, let's try direct attribute access
-                                        // if dataset lookup is tricky.
-                                        // But dataset['missingMetadataV1'] should work if data-missing-metadata-v1 exists.
-                                        // Let's rely on our manual construction:
-                                        // data-missing-{{ profile }}
-                                        // Let's use getAttribute for safety/simplicity
-                                        missingRaw = row.getAttribute(
-                                            `data-missing-${profile}`,
-                                        );
+                                if (currentFilterMode === "AND") {
+                                    // EXCLUSIVE: If ANY active profile has 0 files, fail.
+                                    if (present <= 0) {
+                                        hasData = false;
+                                        break;
                                     }
-
-                                    // Default to "Total Images" (Complete Failure) if attribute is missing
-                                    let missing = totalImages;
-                                    if (
-                                        missingRaw !== null &&
-                                        missingRaw !== undefined
-                                    ) {
-                                        missing = parseInt(missingRaw, 10);
-                                    }
-
-                                    const present = totalImages - missing;
-
-                                    if (currentFilterMode === "AND") {
-                                        // EXCLUSIVE: If ANY active profile has 0 files, fail.
-                                        if (present <= 0) {
-                                            hasData = false;
-                                            break;
-                                        }
-                                    } else {
-                                        // INCLUSIVE: If ANY active profile has files, succeed.
-                                        if (present > 0) {
-                                            hasData = true;
-                                            break;
-                                        }
+                                } else {
+                                    // INCLUSIVE: If ANY active profile has files, succeed.
+                                    if (present > 0) {
+                                        hasData = true;
+                                        break;
                                     }
                                 }
                             }
-                        } else {
-                            // Empty year (0 images) has no data -> Hide in Match modes
-                            hasData = false;
                         }
+                    } else {
+                        // Empty year (0 images) has no data -> Hide in Match modes
+                        hasData = false;
+                    }
 
-                        row.style.display = hasData ? "" : "none";
-                    });
-                };
+                    row.style.display = hasData ? "" : "none";
+                });
+            };
 
-                function updateTable() {
-                    const activeProfileList = Array.from(
-                        controls.querySelectorAll('input[type="checkbox"]'),
-                    )
-                        .filter((cb) => cb.checked)
-                        .map((cb) => cb.value);
+            function updateTable() {
+                const activeProfileList = Array.from(
+                    controls.querySelectorAll('input[type="checkbox"]'),
+                )
+                    .filter((cb) => cb.checked)
+                    .map((cb) => cb.value);
 
-                    tableRows.forEach((row) => {
-                        const totalImages =
-                            parseInt(row.dataset.totalImages, 10) || 0;
-                        let totalMissing = 0;
-                        const ringData = [];
+                tableRows.forEach((row) => {
+                    const totalImages =
+                        parseInt(row.dataset.totalImages, 10) || 0;
+                    let totalMissing = 0;
+                    const ringData = [];
 
-                        activeProfileList.forEach((profile) => {
-                            let missingCount = 0;
-                            if (profile === "Texts") {
-                                missingCount =
-                                    parseInt(row.dataset.missingTexts, 10) ||
-                                    0;
-                            } else {
-                                // For consistency calculation, we assume 0 if attr missing?
-                                // Actually, existing logic relied on camelCase.
-                                // Let's use the safer getAttribute approach here too to be robust.
-                                const val = row.getAttribute(
-                                    `data-missing-${profile}`,
-                                );
-                                missingCount = val
-                                    ? parseInt(val, 10)
-                                    : 0; // Existing logic defaulted to 0 (Perfect coverage) for missing attrs?
-                                // Wait, the original code used:
-                                // const camelCaseKey = toCamelCase(`missing-${profile}`);
-                                // missingCount = parseInt(row.dataset[camelCaseKey], 10) || 0;
-                                // If dataset key is undefined, it becomes 0.
-                                // This implies "If I don't know about it, I assume it's perfect".
-                                // This might be legacy behavior we should preserve for consistency CALCULATION
-                                // but for FILTERING (above) we handled it as "If unknown, assume missing".
-                            }
-                            totalMissing += missingCount;
-                            let percent = 0;
-                            if (totalImages > 0)
-                                percent =
-                                    ((totalImages - missingCount) /
-                                        totalImages) *
-                                    100;
-                            else if (
-                                totalImages === 0 &&
-                                missingCount === 0
-                            )
-                                percent = 100;
-
-                            ringData.push({
-                                profile: profile,
-                                percent: Math.max(0, percent),
-                            });
-                        });
-
-                        const totalPossible =
-                            totalImages * activeProfileList.length;
-                        let overallConsistency = 100.0;
-                        if (totalPossible > 0)
-                            overallConsistency = Math.max(
-                                0,
-                                ((totalPossible - totalMissing) /
-                                    totalPossible) *
-                                    100,
+                    activeProfileList.forEach((profile) => {
+                        let missingCount = 0;
+                        if (profile === "Texts") {
+                            missingCount =
+                                parseInt(row.dataset.missingTexts, 10) ||
+                                0;
+                        } else {
+                            // For consistency calculation, we assume 0 if attr missing?
+                            // Actually, existing logic relied on camelCase.
+                            // Let's use the safer getAttribute approach here too to be robust.
+                            const val = row.getAttribute(
+                                `data-missing-${profile}`,
                             );
-                        else if (totalImages > 0) overallConsistency = 0;
+                            missingCount = val
+                                ? parseInt(val, 10)
+                                : 0; // Existing logic defaulted to 0 (Perfect coverage) for missing attrs?
+                            // Wait, the original code used:
+                            // const camelCaseKey = toCamelCase(`missing-${profile}`);
+                            // missingCount = parseInt(row.dataset[camelCaseKey], 10) || 0;
+                            // If dataset key is undefined, it becomes 0.
+                            // This implies "If I don't know about it, I assume it's perfect".
+                            // This might be legacy behavior we should preserve for consistency CALCULATION
+                            // but for FILTERING (above) we handled it as "If unknown, assume missing".
+                        }
+                        totalMissing += missingCount;
+                        let percent = 0;
+                        if (totalImages > 0)
+                            percent =
+                                ((totalImages - missingCount) /
+                                    totalImages) *
+                                100;
+                        else if (
+                            totalImages === 0 &&
+                            missingCount === 0
+                        )
+                            percent = 100;
 
-                        row.querySelector(".total-missing").textContent =
-                            totalMissing.toLocaleString();
-                        row.querySelector(
-                            ".consistency-percent",
-                        ).textContent = `${overallConsistency.toFixed(2)}%`;
-                        const ringContainer =
-                            row.querySelector(".ring-container");
-                        if (ringContainer)
-                            renderActivityRings(ringContainer, ringData);
+                        ringData.push({
+                            profile: profile,
+                            percent: Math.max(0, percent),
+                        });
                     });
 
-                    // After stats update, enforce visibility filter
-                    applyRowVisibility();
-                }
+                    const totalPossible =
+                        totalImages * activeProfileList.length;
+                    let overallConsistency = 100.0;
+                    if (totalPossible > 0)
+                        overallConsistency = Math.max(
+                            0,
+                            ((totalPossible - totalMissing) /
+                                totalPossible) *
+                            100,
+                        );
+                    else if (totalImages > 0) overallConsistency = 0;
 
-                const chartCtx = document
-                    .getElementById("yearSizeChart")
-                    .getContext("2d");
-                const yearLabels = Array.from(tableRows).map((row) =>
-                    row.children[0].textContent.trim(),
-                );
-                const imageCounts = Array.from(tableRows).map((row) =>
-                    parseInt(row.dataset.totalImages, 10),
-                );
-                new Chart(chartCtx, {
-                    type: "bar",
-                    data: {
-                        labels: yearLabels,
-                        datasets: [
-                            {
-                                label: "Image Count",
-                                data: imageCounts,
-                                backgroundColor: "rgba(34, 197, 94, 0.5)",
-                                borderColor: "rgba(34, 197, 94, 1)",
-                                borderWidth: 1,
-                            },
-                        ],
-                    },
-                    options: {
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: { type: "logarithmic", beginAtZero: true },
-                            x: {
-                                ticks: {
-                                    autoSkip: true,
-                                    maxRotation: 90,
-                                    minRotation: 45,
-                                },
+                    row.querySelector(".total-missing").textContent =
+                        totalMissing.toLocaleString();
+                    row.querySelector(
+                        ".consistency-percent",
+                    ).textContent = `${overallConsistency.toFixed(2)}%`;
+                    const ringContainer =
+                        row.querySelector(".ring-container");
+                    if (ringContainer)
+                        renderActivityRings(ringContainer, ringData);
+                });
+
+                // After stats update, enforce visibility filter
+                applyRowVisibility();
+            }
+
+            const chartCtx = document
+                .getElementById("yearSizeChart")
+                .getContext("2d");
+            const yearLabels = Array.from(tableRows).map((row) =>
+                row.children[0].textContent.trim(),
+            );
+
+            // 1. Get Profiles from Checkboxes
+            // We want all available profiles to show in the chart
+            const allProfiles = Array.from(controls.querySelectorAll('input[type="checkbox"]')).map(cb => cb.value);
+            allProfiles.sort();
+
+            // 2. Build Datasets
+            const datasets = [];
+
+            allProfiles.forEach(profile => {
+                const data = Array.from(tableRows).map(row => {
+                    const total = parseInt(row.dataset.totalImages, 10) || 0;
+                    let missing = 0;
+
+                    if (profile === "Texts") {
+                        missing = parseInt(row.dataset.missingTexts, 10) || 0;
+                    } else {
+                        // Use getAttribute to be safe with dynamic names
+                        const val = row.getAttribute(`data-missing-${profile}`);
+                        missing = val ? parseInt(val, 10) : 0;
+                    }
+
+                    return Math.max(0, total - missing);
+                });
+
+                // Color
+                let colorKey = profile;
+                const color = PROFILE_COLORS[colorKey] || PROFILE_COLORS[colorKey.split("-")[0]] || PROFILE_COLORS["default"];
+
+                datasets.push({
+                    label: profile,
+                    data: data,
+                    backgroundColor: color,
+                    stack: 'Stack 0',
+                });
+            });
+
+            new Chart(chartCtx, {
+                type: "bar",
+                data: {
+                    labels: yearLabels,
+                    datasets: datasets,
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            stacked: true,
+                            beginAtZero: true
+                        },
+                        x: {
+                            stacked: true,
+                            ticks: {
+                                autoSkip: true,
+                                maxRotation: 90,
+                                minRotation: 45,
                             },
                         },
-                        plugins: { legend: { display: false } },
                     },
-                });
-
-                controls.addEventListener("change", () => {
-                    saveFilters();
-                    updateTable();
-                });
-
-                loadFilters();
-                updateTable();
-                updateFilterButtons(); // Init button state
+                    plugins: {
+                        legend: { display: true },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                },
             });
-        </script>
-    </body>
+
+            controls.addEventListener("change", () => {
+                saveFilters();
+                updateTable();
+            });
+
+            loadFilters();
+            updateTable();
+            updateFilterButtons(); // Init button state
+        });
+    </script>
+</body>
+
 </html>

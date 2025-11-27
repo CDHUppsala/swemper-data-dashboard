@@ -222,9 +222,29 @@
 
         <!-- Bar Chart -->
         <div class="bg-white p-6 rounded-lg shadow-md mb-8 dark:bg-gray-800">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-4 dark:text-gray-200">
-                Total Images per Journal
-            </h2>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200">
+                    Total Images per Journal
+                </h2>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="stacked-toggle" checked
+                            class="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer dark:bg-gray-600 dark:border-gray-500"
+                            onchange="updateChartSettings()" />
+                        <label for="stacked-toggle" class="text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+                            Stacked
+                        </label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="log-scale-toggle" checked
+                            class="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer dark:bg-gray-600 dark:border-gray-500"
+                            onchange="updateChartSettings()" />
+                        <label for="log-scale-toggle" class="text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+                            Log Scale
+                        </label>
+                    </div>
+                </div>
+            </div>
             <div class="relative h-96">
                 <canvas id="journalSizeChart"></canvas>
             </div>
@@ -1078,6 +1098,10 @@
                             );
                         }
                     });
+
+                    // Update Chart
+                    if (window.updateJournalChart) window.updateJournalChart();
+
                 } catch (e) {
                     console.error("Table Update Error", e);
                 }
@@ -1896,44 +1920,25 @@
                 });
             }
 
-            // Initial Chart Logic (Same as before)
-            const chartCtx =
-                document.getElementById("journalSizeChart");
+            // Initial Chart Logic
+            const chartCtx = document.getElementById("journalSizeChart");
             if (chartCtx) {
-                const journalLabels = Array.from(tableRows).map((row) =>
-                    row.children[0].textContent.trim(),
-                );
-                const imageCounts = Array.from(tableRows).map((row) =>
-                    // We can grab totals from dataset now or parse DOM (stick to DOM for ease here)
-                    // Actually, we can just read the data from dataset more cleanly:
-                    DATASET_RESULTS[row.dataset.journalName]
-                        ? DATASET_RESULTS[row.dataset.journalName]
-                            .summary.total_images
-                        : 0,
-                );
-                new Chart(chartCtx.getContext("2d"), {
+                window.journalChart = new Chart(chartCtx.getContext("2d"), {
                     type: "bar",
                     data: {
-                        labels: journalLabels,
-                        datasets: [
-                            {
-                                label: "Total Image Count",
-                                data: imageCounts,
-                                backgroundColor:
-                                    "rgba(59, 130, 246, 0.5)",
-                                borderColor: "rgba(59, 130, 246, 1)",
-                                borderWidth: 1,
-                            },
-                        ],
+                        labels: [],
+                        datasets: [],
                     },
                     options: {
                         maintainAspectRatio: false,
                         scales: {
                             y: {
                                 type: "logarithmic",
+                                stacked: true,
                                 beginAtZero: true,
                             },
                             x: {
+                                stacked: true,
                                 ticks: {
                                     autoSkip: false,
                                     maxRotation: 90,
@@ -1941,10 +1946,102 @@
                                 },
                             },
                         },
-                        plugins: { legend: { display: false } },
+                        plugins: {
+                            legend: { display: true },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                            }
+                        },
                     },
                 });
             }
+
+            // Update Journal Chart Data (Filters)
+            window.updateJournalChart = function () {
+                if (!window.journalChart) return;
+
+                const selectedJournals = getSelectedJournals();
+                const journalLabels = [];
+                const filteredJournals = [];
+
+                Array.from(tableRows).forEach(row => {
+                    const name = row.children[0].textContent.trim();
+                    if (selectedJournals.has(name)) {
+                        journalLabels.push(name);
+                        filteredJournals.push(name);
+                    }
+                });
+
+                // 1. Identify all unique profiles from data
+                const allProfiles = new Set();
+                Object.values(DATASET_RESULTS).forEach(d => {
+                    if (d.summary.profile_counts) {
+                        Object.keys(d.summary.profile_counts).forEach(p => allProfiles.add(p));
+                    }
+                });
+
+                // 2. Build Datasets
+                const datasets = [];
+                const profiles = Array.from(allProfiles);
+                profiles.sort();
+
+                const isStacked = document.getElementById('stacked-toggle').checked;
+
+                profiles.forEach(profile => {
+                    const data = filteredJournals.map(jName => {
+                        const jData = DATASET_RESULTS[jName];
+                        if (!jData) return 0;
+                        const total = jData.summary.total_images || 0;
+                        let missing = 0;
+                        if (profile === 'texts_group') {
+                            missing = jData.summary.profile_counts.texts_group?.missing_coverage || 0;
+                        } else {
+                            missing = jData.summary.profile_counts[profile] || 0;
+                        }
+                        return Math.max(0, total - missing);
+                    });
+
+                    let colorKey = profile;
+                    if (profile === 'texts_group') colorKey = 'Texts';
+                    const color = PROFILE_COLORS[colorKey] || PROFILE_COLORS[colorKey.split("-")[0]] || PROFILE_COLORS["default"];
+
+                    datasets.push({
+                        label: colorKey,
+                        data: data,
+                        backgroundColor: color,
+                        stack: isStacked ? 'Stack 0' : undefined,
+                    });
+                });
+
+                window.journalChart.data.labels = journalLabels;
+                window.journalChart.data.datasets = datasets;
+                window.journalChart.update();
+            };
+
+            // Update Chart Settings Function
+            window.updateChartSettings = function () {
+                const isLog = document.getElementById('log-scale-toggle').checked;
+                const isStacked = document.getElementById('stacked-toggle').checked;
+
+                if (window.journalChart) {
+                    // Update Scale Type
+                    window.journalChart.options.scales.y.type = isLog ? 'logarithmic' : 'linear';
+
+                    // Update Stacking on Scales
+                    window.journalChart.options.scales.x.stacked = isStacked;
+                    window.journalChart.options.scales.y.stacked = isStacked;
+
+                    // Update Stacking on Datasets
+                    // When grouped (not stacked), we must remove the common stack ID
+                    // so Chart.js knows to place them side-by-side.
+                    window.journalChart.data.datasets.forEach((ds, index) => {
+                        ds.stack = isStacked ? 'Stack 0' : undefined;
+                    });
+
+                    window.journalChart.update();
+                }
+            };
 
             // Init
             loadFilters();
