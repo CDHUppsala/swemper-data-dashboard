@@ -14,6 +14,7 @@ This application scans large-scale digitized journal archives to cross-reference
         - **Drag-to-Calculate:** Click and drag across the timeline header to calculate total page counts for specific periods.
         - **Gap Analysis:** Color-coded stripes within year cells reveal specific missing file types.
         - **Scroll Indicators:** Visual cues when the timeline extends beyond the screen.
+        - **Prioritize Ranges Toggle:** When a year is covered by both a single-year folder (e.g., `1890`) and a multi-year range (e.g., `1890-1895`), this toggle determines which data is shown. Checked = Ranges take precedence.
     - **Growth Charts:** Displays dataset size and image counts per journal and year.
         - **Stacked/Grouped Toggle:** Switch between stacked bars (for profile presence) and grouped bars (for side-by-side comparison).
         - **Log Scale Toggle:** Switch between logarithmic and linear scales to handle large data disparities.
@@ -88,6 +89,12 @@ To add a new data type (e.g., a new OCR version), add a new key-value pair:
 3.  **`extension`:** The file suffix to look for (e.g., `.xml`, `.txt`, `.json`).
 
 **Important Note:** The scanner uses the `'images'` profile as the "Source of Truth." It finds all `.jpg` files in the `images/jpg` folder first, and then checks if corresponding files exist in all other defined profiles.
+
+### Special Case: "Texts" Profile
+The **"Texts"** profile is a **Composite Coverage Group**. It aggregates all profiles starting with `texts-` (e.g., `texts-tesseract-v1`, `texts-ra-ocr`).
+-   **Coverage Logic:** An image is considered "Covered" if *at least one* text version exists (OR logic).
+-   **Missing Logic:** An image is only "Missing" text if *all* text versions are missing.
+-   **Dashboard:** The "Texts" bar represents the count of images with *any* text coverage.
 
 ## 🚀 Usage
 
