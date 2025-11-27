@@ -28,4 +28,5 @@ tmp/
 # --- OS Specific ---
 .DS_Store
 Thumbs.db
+AGENT_README.md
 ```

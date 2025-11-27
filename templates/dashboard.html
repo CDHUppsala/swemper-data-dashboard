@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard - All Journals</title>
+    <title>Swemper Dataset Explorer Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -182,10 +182,11 @@
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
             <div>
                 <h1 class="text-4xl font-bold text-gray-800 dark:text-white">
-                    All Journals Overview
+                    Swemper Dataset Explorer: Overview
                 </h1>
                 <p class="text-gray-500 dark:text-gray-400 mt-1">
-                    Scanned at: {{ data.metadata.scan_time }} UTC
+                    Scanned at: {{ data.metadata.scan_time }} UTC <br>
+                    <span id="global-stats">Loading stats...</span>
                 </p>
             </div>
             <div class="flex items-center gap-4 mt-4 md:mt-0">
@@ -222,9 +223,29 @@
 
         <!-- Bar Chart -->
         <div class="bg-white p-6 rounded-lg shadow-md mb-8 dark:bg-gray-800">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-4 dark:text-gray-200">
-                Total Images per Journal
-            </h2>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200">
+                    Total Data per Journal
+                </h2>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="stacked-toggle" checked
+                            class="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer dark:bg-gray-600 dark:border-gray-500"
+                            onchange="updateChartSettings()" />
+                        <label for="stacked-toggle" class="text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+                            Stacked
+                        </label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="log-scale-toggle" checked
+                            class="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer dark:bg-gray-600 dark:border-gray-500"
+                            onchange="updateChartSettings()" />
+                        <label for="log-scale-toggle" class="text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+                            Log Scale
+                        </label>
+                    </div>
+                </div>
+            </div>
             <div class="relative h-96">
                 <canvas id="journalSizeChart"></canvas>
             </div>
@@ -315,6 +336,12 @@
                                 class="text-blue-600 hover:underline dark:text-blue-400"
                                 title="Inclusive: Selects journals where ANY active profile is present">
                                 Matches (OR)
+                            </button>
+                            <span class="text-gray-300 dark:text-gray-500">/</span>
+                            <button onclick="window.selectJournalsWithRanges()"
+                                class="text-blue-600 hover:underline dark:text-blue-400"
+                                title="Selects journals that contain year ranges (e.g. 1912-1914)">
+                                Has Ranges
                             </button>
                         </div>
                     </div>
@@ -529,35 +556,42 @@
                         Clear
                     </button>
                 </div>
-            </div>
 
-            <!-- Canvas Wrapper: Sidebar + Scrollable Canvas -->
-            <div id="timeline-wrapper"
-                class="flex border rounded-lg bg-gray-50 dark:bg-gray-900 dark:border-gray-600 h-[600px] relative">
-                <!-- 1. Sticky Sidebar for Journal Names -->
-                <div id="timeline-sidebar"
-                    class="w-40 flex-shrink-0 overflow-hidden border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-10">
-                    <!-- Header Spacer -->
-                    <!-- Fix: Updated colors to match Canvas header (Gray-100 / Gray-800) -->
-                    <div class="h-8 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
+
+                <!-- Canvas Wrapper: Sidebar + Scrollable Canvas -->
+                <div id="timeline-wrapper"
+                    class="flex border rounded-lg bg-gray-50 dark:bg-gray-900 dark:border-gray-600 h-[600px] relative">
+                    <!-- 1. Sticky Sidebar for Journal Names -->
+                    <div id="timeline-sidebar"
+                        class="w-40 flex-shrink-0 overflow-hidden border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-10">
+                        <!-- Header Spacer -->
+                        <!-- Fix: Updated colors to match Canvas header (Gray-100 / Gray-800) -->
+                        <div class="h-8 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
+                        </div>
+                        <!-- Journal Names Container -->
+                        <div id="journal-names-list" class="flex flex-col"></div>
                     </div>
-                    <!-- Journal Names Container -->
-                    <div id="journal-names-list" class="flex flex-col"></div>
-                </div>
 
-                <!-- 2. Scrollable Canvas Container -->
-                <div id="timeline-scroll-area" class="flex-1 overflow-auto relative cursor-crosshair">
-                    <!-- The Canvas -->
-                    <canvas id="timeline-canvas"></canvas>
+                    <!-- 2. Scrollable Canvas Container -->
+                    <div id="timeline-scroll-area" class="flex-1 overflow-auto relative cursor-crosshair">
+                        <!-- The Canvas -->
+                        <canvas id="timeline-canvas"></canvas>
 
-                    <!-- Floating Tooltip -->
-                    <div id="canvas-tooltip"
-                        class="absolute hidden z-50 p-2 bg-gray-800 text-white text-xs rounded shadow-lg max-w-xs pointer-events-none">
+                        <!-- Floating Tooltip -->
+                        <div id="canvas-tooltip"
+                            class="absolute hidden z-50 p-2 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap pointer-events-none">
+                        </div>
+                    </div>
+
+                    <!-- Row Indicators Container (Overlay) -->
+                    <div id="row-indicators-container"
+                        class="absolute top-0 right-0 bottom-0 w-40 pointer-events-none overflow-hidden">
+                        <!-- Indicators will be injected here -->
+                        <div id="row-indicators-inner" class="relative w-full h-full"></div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
     </div>
 
     <script>
@@ -605,55 +639,7 @@
         }
 
         // --- GLOBAL FUNCTIONS ---
-        window.switchTab = function (tabName) {
-            const tableBtn = document.getElementById("tab-btn-table");
-            const timelineBtn = document.getElementById("tab-btn-timeline");
-            const tableView = document.getElementById("view-table");
-            const timelineView = document.getElementById("view-timeline");
-
-            const activeClasses = [
-                "text-blue-600",
-                "border-blue-600",
-                "active",
-                "dark:text-blue-400",
-                "dark:border-blue-400",
-            ];
-            const inactiveClasses = [
-                "text-gray-500",
-                "border-transparent",
-                "hover:text-gray-600",
-                "hover:border-gray-300",
-                "dark:text-gray-400",
-                "dark:hover:text-gray-300",
-            ];
-
-            if (tabName === "table") {
-                tableView.classList.remove("hidden");
-                timelineView.classList.add("hidden");
-
-                // Apply Active to Table Btn
-                tableBtn.classList.add(...activeClasses);
-                tableBtn.classList.remove(...inactiveClasses);
-
-                // Apply Inactive to Timeline Btn
-                timelineBtn.classList.remove(...activeClasses);
-                timelineBtn.classList.add(...inactiveClasses);
-            } else {
-                tableView.classList.add("hidden");
-                timelineView.classList.remove("hidden");
-
-                // Apply Inactive to Table Btn
-                tableBtn.classList.remove(...activeClasses);
-                tableBtn.classList.add(...inactiveClasses);
-
-                // Apply Active to Timeline Btn
-                timelineBtn.classList.add(...activeClasses);
-                timelineBtn.classList.remove(...inactiveClasses);
-
-                const evt = new Event("triggerTimelineRender");
-                document.dispatchEvent(evt);
-            }
-        }
+        // (switchTab moved to main script block)
 
         // Placeholders
         window.toggleAllJournals = function () { };
@@ -957,6 +943,46 @@
                 }
             };
 
+            // New Function: Select journals that have year ranges
+            window.selectJournalsWithRanges = function () {
+                console.log("--- Selecting Journals with Ranges ---");
+                const jControls = document.getElementById("journal-controls");
+                if (!jControls) return;
+
+                const journalCheckboxes = jControls.querySelectorAll('input[type="checkbox"]');
+                let matchedCount = 0;
+
+                journalCheckboxes.forEach((cb) => {
+                    const journalName = cb.value;
+                    const yearMap = journalYearMaps[journalName];
+                    let hasRanges = false;
+
+                    if (yearMap) {
+                        // Check if any year has a key with a hyphen
+                        // yearMap is { yearInt: [key1, key2] }
+                        // We need to check all values in the map
+                        for (const keys of Object.values(yearMap)) {
+                            if (keys.some(k => k.includes('-'))) {
+                                hasRanges = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (hasRanges) {
+                        matchedCount++;
+                    }
+                    cb.checked = hasRanges;
+                });
+
+                console.log(`Selection Complete. Selected ${matchedCount} journals with ranges.`);
+                updateTable();
+                if (!document.getElementById("view-timeline").classList.contains("hidden")) {
+                    renderTimeline();
+                    updateSelectionStats();
+                }
+            };
+
             document.addEventListener(
                 "triggerTimelineRender",
                 function () {
@@ -1073,6 +1099,10 @@
                             );
                         }
                     });
+
+                    // Update Chart
+                    if (window.updateJournalChart) window.updateJournalChart();
+
                 } catch (e) {
                     console.error("Table Update Error", e);
                 }
@@ -1088,6 +1118,7 @@
             const sidebarList =
                 document.getElementById("journal-names-list");
             const tooltip = document.getElementById("canvas-tooltip");
+            // scrollIndicator removed
 
             let canvasState = {
                 cellWidth: 24,
@@ -1433,6 +1464,48 @@
                         ctx.fillRect(x, 0, 1, canvasState.headerHeight);
                     }
                 }
+                updateRowIndicators();
+            }
+
+            function updateRowIndicators() {
+                const container = document.getElementById("row-indicators-inner");
+                if (!container) return;
+
+                // Sync vertical scroll
+                container.style.transform = `translateY(-${scrollArea.scrollTop}px)`;
+
+                // Clear existing
+                container.innerHTML = "";
+
+                if (!canvasState.journals.length) return;
+
+                // Calculate visible range
+                const scrollLeft = scrollArea.scrollLeft;
+                const clientWidth = scrollArea.clientWidth;
+                const rightEdgeYear = Math.floor((scrollLeft + clientWidth) / canvasState.cellWidth) + canvasState.minYear;
+
+                canvasState.journals.forEach((name, index) => {
+                    const yearMap = journalYearMaps[name];
+                    if (!yearMap) return;
+
+                    // Find min year for this journal
+                    const years = Object.keys(yearMap).map(Number);
+                    if (years.length === 0) return;
+                    const minYear = Math.min(...years);
+
+                    // If data starts off-screen to the right
+                    if (minYear > rightEdgeYear) {
+                        const indicator = document.createElement("div");
+                        indicator.className = "absolute right-2 bg-gray-800 text-white text-xs px-2 py-1 rounded shadow opacity-90 whitespace-nowrap z-20";
+                        // Position vertically based on row index
+                        // Top = headerHeight + rowIndex * cellHeight + (cellHeight - height)/2
+                        // Let's center it in the row
+                        const top = canvasState.headerHeight + index * canvasState.cellHeight + (canvasState.cellHeight - 24) / 2;
+                        indicator.style.top = `${top}px`;
+                        indicator.textContent = `${minYear} →`;
+                        container.appendChild(indicator);
+                    }
+                });
             }
 
             // --- CANVAS INTERACTIONS ---
@@ -1440,6 +1513,7 @@
                 // Sync Scroll
                 scrollArea.addEventListener("scroll", () => {
                     sidebar.scrollTop = scrollArea.scrollTop;
+                    updateRowIndicators();
                 });
 
                 // Mouse Move (Hover + Drag)
@@ -1610,8 +1684,39 @@
                             tooltip.innerHTML = tooltipHTML;
                             // Revert to using x/y (relative to canvas/scroll area) as requested.
                             // This ensures the tooltip moves correctly with the scroll and is positioned relative to the canvas content.
-                            tooltip.style.left = `${x + 15}px`;
-                            tooltip.style.top = `${y + 15}px`;
+                            // Position Tooltip
+                            const tooltipRect = tooltip.getBoundingClientRect();
+                            const scrollAreaRect = scrollArea.getBoundingClientRect();
+
+                            // Default: Bottom-Right
+                            let top = y + 15;
+                            let left = x + 15;
+
+                            // Check Vertical Overflow (relative to viewport)
+                            // We need screen coordinates for the check, but we set style.top relative to the container (canvas)
+                            // The 'y' variable is relative to the canvas top-left.
+
+                            // Calculate screen Y of the proposed bottom of the tooltip
+                            // canvas.getBoundingClientRect().top gives us the canvas top on screen
+                            // But wait, 'y' is derived from e.clientY - rect.top. So 'y' is offset from canvas top.
+                            // The canvas moves with scroll.
+
+                            // Let's simplify: 
+                            // Visible area bottom (relative to canvas top) = scrollArea.scrollTop + scrollArea.clientHeight
+                            // Actually, simpler: check screen coordinates.
+
+                            const viewportHeight = window.innerHeight;
+                            const tooltipHeight = tooltip.offsetHeight;
+
+                            // Check if tooltip bottom goes below the scroll area's bottom edge
+                            // scrollAreaRect.bottom is the screen coordinate of the container's bottom
+                            if (e.clientY + 15 + tooltipHeight > scrollAreaRect.bottom) {
+                                // Flip to top
+                                top = y - tooltipHeight - 10;
+                            }
+
+                            tooltip.style.left = `${left}px`;
+                            tooltip.style.top = `${top}px`;
                             tooltip.classList.remove("hidden");
                         } else {
                             tooltip.classList.add("hidden");
@@ -1760,14 +1865,18 @@
 
                 if (tabName === "table") {
                     tableView.classList.remove("hidden");
+                    tableView.style.display = "";
                     timelineView.classList.add("hidden");
+                    timelineView.style.display = "none";
                     tableBtn.classList.add(...activeClasses);
                     tableBtn.classList.remove(...inactiveClasses);
                     timelineBtn.classList.remove(...activeClasses);
                     timelineBtn.classList.add(...inactiveClasses);
                 } else {
                     tableView.classList.add("hidden");
+                    tableView.style.display = "none";
                     timelineView.classList.remove("hidden");
+                    timelineView.style.display = "";
                     tableBtn.classList.remove(...activeClasses);
                     tableBtn.classList.add(...inactiveClasses);
                     timelineBtn.classList.add(...activeClasses);
@@ -1812,44 +1921,25 @@
                 });
             }
 
-            // Initial Chart Logic (Same as before)
-            const chartCtx =
-                document.getElementById("journalSizeChart");
+            // Initial Chart Logic
+            const chartCtx = document.getElementById("journalSizeChart");
             if (chartCtx) {
-                const journalLabels = Array.from(tableRows).map((row) =>
-                    row.children[0].textContent.trim(),
-                );
-                const imageCounts = Array.from(tableRows).map((row) =>
-                    // We can grab totals from dataset now or parse DOM (stick to DOM for ease here)
-                    // Actually, we can just read the data from dataset more cleanly:
-                    DATASET_RESULTS[row.dataset.journalName]
-                        ? DATASET_RESULTS[row.dataset.journalName]
-                            .summary.total_images
-                        : 0,
-                );
-                new Chart(chartCtx.getContext("2d"), {
+                window.journalChart = new Chart(chartCtx.getContext("2d"), {
                     type: "bar",
                     data: {
-                        labels: journalLabels,
-                        datasets: [
-                            {
-                                label: "Total Image Count",
-                                data: imageCounts,
-                                backgroundColor:
-                                    "rgba(59, 130, 246, 0.5)",
-                                borderColor: "rgba(59, 130, 246, 1)",
-                                borderWidth: 1,
-                            },
-                        ],
+                        labels: [],
+                        datasets: [],
                     },
                     options: {
                         maintainAspectRatio: false,
                         scales: {
                             y: {
                                 type: "logarithmic",
+                                stacked: true,
                                 beginAtZero: true,
                             },
                             x: {
+                                stacked: true,
                                 ticks: {
                                     autoSkip: false,
                                     maxRotation: 90,
@@ -1857,14 +1947,153 @@
                                 },
                             },
                         },
-                        plugins: { legend: { display: false } },
+                        plugins: {
+                            legend: { display: true },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                            }
+                        },
                     },
                 });
             }
 
+            // Update Journal Chart Data (Filters)
+            window.updateJournalChart = function () {
+                if (!window.journalChart) return;
+
+                const selectedJournals = getSelectedJournals();
+                const journalLabels = [];
+                const filteredJournals = [];
+
+                Array.from(tableRows).forEach(row => {
+                    const name = row.children[0].textContent.trim();
+                    if (selectedJournals.has(name)) {
+                        journalLabels.push(name);
+                        filteredJournals.push(name);
+                    }
+                });
+
+                // 1. Identify all unique profiles from data
+                const allProfiles = new Set();
+                Object.values(DATASET_RESULTS).forEach(d => {
+                    if (d.summary.profile_counts) {
+                        Object.keys(d.summary.profile_counts).forEach(p => allProfiles.add(p));
+                    }
+                });
+
+                // 2. Build Datasets
+                const datasets = [];
+                const profiles = Array.from(allProfiles);
+                profiles.sort();
+
+                const isStacked = document.getElementById('stacked-toggle').checked;
+
+                profiles.forEach(profile => {
+                    const data = filteredJournals.map(jName => {
+                        const jData = DATASET_RESULTS[jName];
+                        if (!jData) return 0;
+                        const total = jData.summary.total_images || 0;
+                        let missing = 0;
+                        if (profile === 'texts_group') {
+                            missing = jData.summary.profile_counts.texts_group?.missing_coverage || 0;
+                        } else {
+                            missing = jData.summary.profile_counts[profile] || 0;
+                        }
+                        return Math.max(0, total - missing);
+                    });
+
+                    let colorKey = profile;
+                    if (profile === 'texts_group') colorKey = 'Texts';
+                    const color = PROFILE_COLORS[colorKey] || PROFILE_COLORS[colorKey.split("-")[0]] || PROFILE_COLORS["default"];
+
+                    datasets.push({
+                        label: colorKey,
+                        data: data,
+                        backgroundColor: color,
+                        stack: isStacked ? 'Stack 0' : undefined,
+                    });
+                });
+
+                window.journalChart.data.labels = journalLabels;
+                window.journalChart.data.datasets = datasets;
+                window.journalChart.update();
+            };
+
+            // Update Chart Settings Function
+            window.updateChartSettings = function () {
+                const isLog = document.getElementById('log-scale-toggle').checked;
+                const isStacked = document.getElementById('stacked-toggle').checked;
+
+                if (window.journalChart) {
+                    // Update Scale Type
+                    window.journalChart.options.scales.y.type = isLog ? 'logarithmic' : 'linear';
+
+                    // Update Stacking on Scales
+                    window.journalChart.options.scales.x.stacked = isStacked;
+                    window.journalChart.options.scales.y.stacked = isStacked;
+
+                    // Update Stacking on Datasets
+                    // When grouped (not stacked), we must remove the common stack ID
+                    // so Chart.js knows to place them side-by-side.
+                    window.journalChart.data.datasets.forEach((ds, index) => {
+                        ds.stack = isStacked ? 'Stack 0' : undefined;
+                    });
+
+                    window.journalChart.update();
+                }
+            };
+
+            // Update Global Stats Function
+            window.updateGlobalStats = function () {
+                let totalImages = 0;
+                const profileTotals = {};
+
+                Object.values(DATASET_RESULTS).forEach(d => {
+                    const total = d.summary.total_images || 0;
+                    totalImages += total;
+
+                    if (d.summary.profile_counts) {
+                        Object.entries(d.summary.profile_counts).forEach(([profile, missing]) => {
+                            // Handle texts_group special case
+                            let pName = profile;
+                            let mCount = missing;
+
+                            if (profile === 'texts_group') {
+                                pName = 'Texts';
+                                mCount = missing.missing_coverage || 0;
+                            }
+
+                            if (!profileTotals[pName]) profileTotals[pName] = 0;
+                            // Present = Total for this journal - Missing for this profile
+                            // Note: This assumes every image *should* have every profile.
+                            // If that's not true, this logic might need adjustment, but based on previous charts, this is the standard.
+                            const present = Math.max(0, total - mCount);
+                            profileTotals[pName] += present;
+                        });
+                    }
+                });
+
+                // Format Output
+                const parts = [];
+                parts.push(`Total Pages: ${totalImages.toLocaleString()}`);
+
+                // Sort profiles
+                const sortedProfiles = Object.keys(profileTotals).sort();
+                sortedProfiles.forEach(p => {
+                    parts.push(`${p}: ${profileTotals[p].toLocaleString()}`);
+                });
+
+                const statsEl = document.getElementById('global-stats');
+                if (statsEl) {
+                    statsEl.innerHTML = parts.join(' <span class="text-gray-300 dark:text-gray-600 mx-1">|</span> ');
+                }
+            };
+
             // Init
             loadFilters();
             updateTable();
+            updateGlobalStats();
         });
     </script>
 </body>
