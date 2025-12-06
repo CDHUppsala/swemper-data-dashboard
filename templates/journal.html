@@ -225,7 +225,7 @@
                             data-missing-texts-group="{{ year_data.summary.profile_counts.texts_group.missing_coverage if year_data.summary.profile_counts.texts_group is defined else 0 }}"
                             {% for profile, count in year_data.summary.profile_counts.items() if profile !="texts_group"
                             %} data-missing-{{ profile }}="{{ count }}" {% endfor %}
-                            data-missing-texts="{{ year_data.summary.profile_counts.texts_group.missing_coverage }}">
+                            data-missing-texts="{{ year_data.summary.profile_counts.texts_group.missing_coverage if year_data.summary.profile_counts.texts_group is defined else 0 }}">
                             <td
                                 class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white align-top">
                                 {{ year }}

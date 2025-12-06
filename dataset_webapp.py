@@ -16,8 +16,6 @@ from markdown import markdown
 PROFILES = {
     'images': {'path_parts': ('images', 'jpg'), 'extension': '.jpg'},
     'avif': {'path_parts': ('images', 'avif'), 'extension': '.avif'},
-    'texts-tesseract-v1': {'path_parts': ('texts', 'tesseract-v1',), 'extension': '.txt'},
-    'texts-ra-ocr': {'path_parts': ('texts', 'ra-ocr',), 'extension': '.txt'},
     'tesseract-v1': {'path_parts': ('texts', 'tesseract-v1',), 'extension': '.txt'},
     'ra-ocr': {'path_parts': ('texts', 'ra-ocr',), 'extension': '.txt'},
     'xml': {'path_parts': ('xml',), 'extension': '.xml'},
@@ -95,7 +93,7 @@ def scan_all_journals(root_dir: Path):
     text_profiles = {name: conf for name,
                      conf in PROFILES.items() if conf['path_parts'][0] == 'texts'}
     standard_profiles = {name: conf for name, conf in PROFILES.items(
-    ) if name != 'images' and name not in text_profiles}
+    ) if name != 'images' and (name not in text_profiles or name in ['tesseract-v1', 'ra-ocr'])}
 
     for journal_dir in sorted(root_dir.iterdir()):
         if not journal_dir.is_dir():
@@ -210,7 +208,7 @@ def dashboard():
         return redirect(url_for('index'))
 
     standard_profiles = {name for name, conf in PROFILES.items(
-    ) if name != 'images' and conf['path_parts'][0] != 'texts'}
+    ) if name != 'images' and (conf['path_parts'][0] != 'texts' or name in ['tesseract-v1', 'ra-ocr'])}
     has_texts = any(conf['path_parts'][0] == 'texts' for conf in PROFILES.values())
 
     filter_profiles = sorted(list(standard_profiles))
@@ -227,7 +225,7 @@ def journal_detail(journal_name):
 
     journal_data = SCAN_RESULTS['results'][journal_name]
     standard_profiles = {name for name, conf in PROFILES.items(
-    ) if name != 'images' and conf['path_parts'][0] != 'texts'}
+    ) if name != 'images' and (conf['path_parts'][0] != 'texts' or name in ['tesseract-v1', 'ra-ocr'])}
     has_texts = any(conf['path_parts'][0] == 'texts' for conf in PROFILES.values())
     filter_profiles = sorted(list(standard_profiles))
     if has_texts:
