@@ -76,7 +76,8 @@ The file profiles are defined in the `PROFILES` dictionary within `dataset_webap
 PROFILES = {
     'images': {'path_parts': ('images', 'jpg'), 'extension': '.jpg'},
     'avif': {'path_parts': ('images', 'avif'), 'extension': '.avif'},
-    'texts-tesseract-v1': {'path_parts': ('texts', 'tesseract-v1',), 'extension': '.txt'},
+    'tesseract-v1': {'path_parts': ('texts', 'tesseract-v1',), 'extension': '.txt'},
+    'ra-ocr': {'path_parts': ('texts', 'ra-ocr',), 'extension': '.txt'},
     # ...
 }
 ```
@@ -91,7 +92,7 @@ To add a new data type (e.g., a new OCR version), add a new key-value pair:
 **Important Note:** The scanner uses the `'images'` profile as the "Source of Truth." It finds all `.jpg` files in the `images/jpg` folder first, and then checks if corresponding files exist in all other defined profiles.
 
 ### Special Case: "Texts" Profile
-The **"Texts"** profile is a **Composite Coverage Group**. It aggregates all profiles starting with `texts-` (e.g., `texts-tesseract-v1`, `texts-ra-ocr`).
+The **"Texts"** profile is a **Composite Coverage Group**. It aggregates all profiles where the first part of `path_parts` is `'texts'` (e.g., `tesseract-v1`, `ra-ocr`).
 -   **Coverage Logic:** An image is considered "Covered" if *at least one* text version exists (OR logic).
 -   **Missing Logic:** An image is only "Missing" text if *all* text versions are missing.
 -   **Dashboard:** The "Texts" bar represents the count of images with *any* text coverage.

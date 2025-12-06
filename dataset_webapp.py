@@ -92,8 +92,7 @@ def scan_all_journals(root_dir: Path):
     source_profile = PROFILES['images']
     text_profiles = {name: conf for name,
                      conf in PROFILES.items() if conf['path_parts'][0] == 'texts'}
-    standard_profiles = {name: conf for name, conf in PROFILES.items(
-    ) if name != 'images' and (name not in text_profiles or name in ['tesseract-v1', 'ra-ocr'])}
+    standard_profiles = {name: conf for name, conf in PROFILES.items() if name != 'images'}
 
     for journal_dir in sorted(root_dir.iterdir()):
         if not journal_dir.is_dir():
@@ -207,8 +206,7 @@ def dashboard():
     if SCAN_RESULTS is None:
         return redirect(url_for('index'))
 
-    standard_profiles = {name for name, conf in PROFILES.items(
-    ) if name != 'images' and (conf['path_parts'][0] != 'texts' or name in ['tesseract-v1', 'ra-ocr'])}
+    standard_profiles = {name for name, conf in PROFILES.items() if name != 'images'}
     has_texts = any(conf['path_parts'][0] == 'texts' for conf in PROFILES.values())
 
     filter_profiles = []
@@ -230,8 +228,7 @@ def journal_detail(journal_name):
         return "Journal not found or scan not performed.", 404
 
     journal_data = SCAN_RESULTS['results'][journal_name]
-    standard_profiles = {name for name, conf in PROFILES.items(
-    ) if name != 'images' and (conf['path_parts'][0] != 'texts' or name in ['tesseract-v1', 'ra-ocr'])}
+    standard_profiles = {name for name, conf in PROFILES.items() if name != 'images'}
     has_texts = any(conf['path_parts'][0] == 'texts' for conf in PROFILES.values())
     filter_profiles = []
     if has_texts:
