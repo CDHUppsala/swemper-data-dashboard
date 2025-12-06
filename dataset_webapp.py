@@ -18,6 +18,8 @@ PROFILES = {
     'avif': {'path_parts': ('images', 'avif'), 'extension': '.avif'},
     'texts-tesseract-v1': {'path_parts': ('texts', 'tesseract-v1',), 'extension': '.txt'},
     'texts-ra-ocr': {'path_parts': ('texts', 'ra-ocr',), 'extension': '.txt'},
+    'tesseract-v1': {'path_parts': ('texts', 'tesseract-v1',), 'extension': '.txt'},
+    'ra-ocr': {'path_parts': ('texts', 'ra-ocr',), 'extension': '.txt'},
     'xml': {'path_parts': ('xml',), 'extension': '.xml'},
     'altoxml': {'path_parts': ('altoxml',), 'extension': '.alto.xml'},
     'metadata-v1': {'path_parts': ('metadata', 'v1'), 'extension': '.yaml'},
@@ -33,6 +35,7 @@ ROOT_DIR = None
 SAVE_STATE_PATH = None
 CONFIG = {}
 
+
 def load_config():
     global CONFIG
     config_path = Path('config.json')
@@ -46,7 +49,7 @@ def load_config():
             "temp_dir": "./tmp"
         }
     }
-    
+
     if config_path.exists():
         try:
             with open(config_path, 'r') as f:
@@ -60,9 +63,10 @@ def load_config():
                 print(f"✅ Loaded configuration from {config_path}")
         except Exception as e:
             print(f"⚠️ Error loading config.json: {e}. Using defaults.")
-    
+
     CONFIG = defaults
     return CONFIG
+
 
 # Load config immediately
 load_config()
@@ -242,7 +246,7 @@ def year_detail(journal_name, year_str):
     source_profile = PROFILES['images']
 
     image_dir = journal_dir / Path(*source_profile['path_parts']) / year_str
-    
+
     if not image_dir.exists():
         return render_template('year.html', journal_name=journal_name, year_str=year_str, missing_files=None, source_accessible=False)
 
@@ -434,10 +438,10 @@ if __name__ == '__main__':
             SAVE_STATE_PATH = args.save_state
 
     TEMP_DIR.mkdir(exist_ok=True)
-    
+
     host = CONFIG['server']['host']
     port = CONFIG['server']['port']
     debug = CONFIG['server']['debug']
-    
+
     print(f"✅ Server started. Open http://127.0.0.1:{port} to begin scanning '{ROOT_DIR.name}'.")
     app.run(host=host, port=port, debug=debug)
