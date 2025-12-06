@@ -211,9 +211,15 @@ def dashboard():
     ) if name != 'images' and (conf['path_parts'][0] != 'texts' or name in ['tesseract-v1', 'ra-ocr'])}
     has_texts = any(conf['path_parts'][0] == 'texts' for conf in PROFILES.values())
 
-    filter_profiles = sorted(list(standard_profiles))
+    filter_profiles = []
     if has_texts:
-        filter_profiles.insert(0, "Texts")
+        filter_profiles.append("Texts")
+    # Priority text profiles
+    for priority in ['ra-ocr', 'tesseract-v1']:
+        if priority in standard_profiles:
+            filter_profiles.append(priority)
+    # Remaining profiles
+    filter_profiles.extend(sorted([p for p in standard_profiles if p not in ['ra-ocr', 'tesseract-v1']]))
 
     return render_template('dashboard.html', data=SCAN_RESULTS, filter_profiles=filter_profiles)
 
@@ -227,9 +233,15 @@ def journal_detail(journal_name):
     standard_profiles = {name for name, conf in PROFILES.items(
     ) if name != 'images' and (conf['path_parts'][0] != 'texts' or name in ['tesseract-v1', 'ra-ocr'])}
     has_texts = any(conf['path_parts'][0] == 'texts' for conf in PROFILES.values())
-    filter_profiles = sorted(list(standard_profiles))
+    filter_profiles = []
     if has_texts:
-        filter_profiles.insert(0, "Texts")
+        filter_profiles.append("Texts")
+    # Priority text profiles
+    for priority in ['ra-ocr', 'tesseract-v1']:
+        if priority in standard_profiles:
+            filter_profiles.append(priority)
+    # Remaining profiles
+    filter_profiles.extend(sorted([p for p in standard_profiles if p not in ['ra-ocr', 'tesseract-v1']]))
 
     return render_template('journal.html', journal_name=journal_name, data=journal_data, filter_profiles=filter_profiles)
 
