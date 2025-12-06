@@ -89,6 +89,16 @@
 </head>
 
 <body class="bg-gray-100 dark:bg-gray-900 font-sans p-4 md:p-8 transition-colors duration-200">
+    <!-- SVG Definitions for Patterns -->
+    <svg width="0" height="0" class="absolute">
+        <defs>
+            <pattern id="pattern-stripe-texts" width="10" height="10" patternUnits="userSpaceOnUse"
+                patternTransform="rotate(45)">
+                <rect width="10" height="10" fill="#10b981" />
+                <line x1="0" y1="0" x2="0" y2="10" stroke="white" stroke-width="2" />
+            </pattern>
+        </defs>
+    </svg>
     <div class="container mx-auto">
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
             <div>
@@ -149,7 +159,7 @@
                             <label for="{{ profile }}"
                                 class="text-gray-600 dark:text-gray-300 cursor-pointer flex items-center">
                                 <span class="color-dot w-3 h-3 rounded-full mr-2 inline-block bg-gray-400"
-                                    data-profile="{{ profile }}"></span>
+                                    data-profile="{{ profile }}" style="border: 1px solid rgba(0,0,0,0.1);"></span>
                                 {{ profile }}
                             </label>
                         </div>
@@ -225,7 +235,7 @@
                             data-missing-texts-group="{{ year_data.summary.profile_counts.texts_group.missing_coverage if year_data.summary.profile_counts.texts_group is defined else 0 }}"
                             {% for profile, count in year_data.summary.profile_counts.items() if profile !="texts_group"
                             %} data-missing-{{ profile }}="{{ count }}" {% endfor %}
-                            data-missing-texts="{{ year_data.summary.profile_counts.texts_group.missing_coverage }}">
+                            data-missing-texts="{{ year_data.summary.profile_counts.texts_group.missing_coverage if year_data.summary.profile_counts.texts_group is defined else 0 }}">
                             <td
                                 class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white align-top">
                                 {{ year }}
@@ -406,6 +416,8 @@
 
             const PROFILE_COLORS = {
                 Texts: "#10b981",
+                "tesseract-v1": "#34d399",
+                "ra-ocr": "#059669",
                 xml: "#3b82f6",
                 altoxml: "#f59e0b",
                 "metadata-v1": "#8b5cf6",
@@ -416,12 +428,38 @@
 
             document.querySelectorAll(".color-dot").forEach((dot) => {
                 const profile = dot.dataset.profile;
-                const color =
-                    PROFILE_COLORS[profile] ||
-                    PROFILE_COLORS[profile.split("-")[0]] ||
-                    PROFILE_COLORS["default"];
-                dot.style.backgroundColor = color;
+                if (profile === "Texts") {
+                    dot.style.background = "repeating-linear-gradient(45deg, #10b981, #10b981 3px, #ffffff 3px, #ffffff 4px)";
+                } else {
+                    const color =
+                        PROFILE_COLORS[profile] ||
+                        PROFILE_COLORS[profile.split("-")[0]] ||
+                        PROFILE_COLORS["default"];
+                    dot.style.backgroundColor = color;
+                }
             });
+
+            // Pattern Helper for Canvas/Chart
+            function createStripePattern(ctx, color) {
+                const patternCanvas = document.createElement('canvas');
+                patternCanvas.width = 10;
+                patternCanvas.height = 10;
+                const pCtx = patternCanvas.getContext('2d');
+
+                // Background
+                pCtx.fillStyle = color;
+                pCtx.fillRect(0, 0, 10, 10);
+
+                // Stripe
+                pCtx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+                pCtx.lineWidth = 2;
+                pCtx.beginPath();
+                pCtx.moveTo(0, 10);
+                pCtx.lineTo(10, 0);
+                pCtx.stroke();
+
+                return ctx.createPattern(patternCanvas, 'repeat');
+            }
 
             function toCamelCase(str) {
                 return str.replace(/-([a-z0-9])/g, (group) =>
@@ -502,7 +540,12 @@
                     progressCircle.setAttribute("cx", center);
                     progressCircle.setAttribute("cy", center);
                     progressCircle.setAttribute("r", radius);
-                    progressCircle.setAttribute("stroke", color);
+                    if (ring.profile === 'Texts') {
+                        progressCircle.setAttribute("stroke", "url(#pattern-stripe-texts)");
+                    } else {
+                        progressCircle.setAttribute("stroke", color);
+                        progressCircle.style.stroke = color;
+                    }
                     progressCircle.setAttribute(
                         "stroke-width",
                         strokeWidth,
@@ -517,7 +560,6 @@
                     );
                     progressCircle.setAttribute("class", "ring-progress");
                     progressCircle.style.fill = "none";
-                    progressCircle.style.stroke = color;
                     progressCircle.style.transition =
                         "stroke-dashoffset 0.5s ease-in-out";
                     progressCircle.style.transform = "rotate(-90deg)";
@@ -726,10 +768,20 @@
                 let colorKey = profile;
                 const color = PROFILE_COLORS[colorKey] || PROFILE_COLORS[colorKey.split("-")[0]] || PROFILE_COLORS["default"];
 
+
+
+                let bg = color;
+                if (profile === 'Texts') {
+                    // Create temporary canvas for chart pattern
+                    const tCanvas = document.createElement('canvas');
+                    const tCtx = tCanvas.getContext('2d');
+                    bg = createStripePattern(tCtx, color);
+                }
+
                 datasets.push({
                     label: profile,
                     data: data,
-                    backgroundColor: color,
+                    backgroundColor: bg,
                     stack: 'Stack 0',
                 });
             });

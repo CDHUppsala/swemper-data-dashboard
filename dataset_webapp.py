@@ -16,8 +16,8 @@ from markdown import markdown
 PROFILES = {
     'images': {'path_parts': ('images', 'jpg'), 'extension': '.jpg'},
     'avif': {'path_parts': ('images', 'avif'), 'extension': '.avif'},
-    'texts-tesseract-v1': {'path_parts': ('texts', 'tesseract-v1',), 'extension': '.txt'},
-    'texts-ra-ocr': {'path_parts': ('texts', 'ra-ocr',), 'extension': '.txt'},
+    'tesseract-v1': {'path_parts': ('texts', 'tesseract-v1',), 'extension': '.txt'},
+    'ra-ocr': {'path_parts': ('texts', 'ra-ocr',), 'extension': '.txt'},
     'xml': {'path_parts': ('xml',), 'extension': '.xml'},
     'altoxml': {'path_parts': ('altoxml',), 'extension': '.alto.xml'},
     'metadata-v1': {'path_parts': ('metadata', 'v1'), 'extension': '.yaml'},
@@ -33,6 +33,7 @@ ROOT_DIR = None
 SAVE_STATE_PATH = None
 CONFIG = {}
 
+
 def load_config():
     global CONFIG
     config_path = Path('config.json')
@@ -46,7 +47,7 @@ def load_config():
             "temp_dir": "./tmp"
         }
     }
-    
+
     if config_path.exists():
         try:
             with open(config_path, 'r') as f:
@@ -60,9 +61,10 @@ def load_config():
                 print(f"✅ Loaded configuration from {config_path}")
         except Exception as e:
             print(f"⚠️ Error loading config.json: {e}. Using defaults.")
-    
+
     CONFIG = defaults
     return CONFIG
+
 
 # Load config immediately
 load_config()
@@ -91,7 +93,7 @@ def scan_all_journals(root_dir: Path):
     text_profiles = {name: conf for name,
                      conf in PROFILES.items() if conf['path_parts'][0] == 'texts'}
     standard_profiles = {name: conf for name, conf in PROFILES.items(
-    ) if name != 'images' and name not in text_profiles}
+    ) if name != 'images' and (name not in text_profiles or name in ['tesseract-v1', 'ra-ocr'])}
 
     for journal_dir in sorted(root_dir.iterdir()):
         if not journal_dir.is_dir():
@@ -206,12 +208,18 @@ def dashboard():
         return redirect(url_for('index'))
 
     standard_profiles = {name for name, conf in PROFILES.items(
-    ) if name != 'images' and conf['path_parts'][0] != 'texts'}
+    ) if name != 'images' and (conf['path_parts'][0] != 'texts' or name in ['tesseract-v1', 'ra-ocr'])}
     has_texts = any(conf['path_parts'][0] == 'texts' for conf in PROFILES.values())
 
-    filter_profiles = sorted(list(standard_profiles))
+    filter_profiles = []
     if has_texts:
-        filter_profiles.insert(0, "Texts")
+        filter_profiles.append("Texts")
+    # Priority text profiles
+    for priority in ['ra-ocr', 'tesseract-v1']:
+        if priority in standard_profiles:
+            filter_profiles.append(priority)
+    # Remaining profiles
+    filter_profiles.extend(sorted([p for p in standard_profiles if p not in ['ra-ocr', 'tesseract-v1']]))
 
     return render_template('dashboard.html', data=SCAN_RESULTS, filter_profiles=filter_profiles)
 
@@ -223,11 +231,17 @@ def journal_detail(journal_name):
 
     journal_data = SCAN_RESULTS['results'][journal_name]
     standard_profiles = {name for name, conf in PROFILES.items(
-    ) if name != 'images' and conf['path_parts'][0] != 'texts'}
+    ) if name != 'images' and (conf['path_parts'][0] != 'texts' or name in ['tesseract-v1', 'ra-ocr'])}
     has_texts = any(conf['path_parts'][0] == 'texts' for conf in PROFILES.values())
-    filter_profiles = sorted(list(standard_profiles))
+    filter_profiles = []
     if has_texts:
-        filter_profiles.insert(0, "Texts")
+        filter_profiles.append("Texts")
+    # Priority text profiles
+    for priority in ['ra-ocr', 'tesseract-v1']:
+        if priority in standard_profiles:
+            filter_profiles.append(priority)
+    # Remaining profiles
+    filter_profiles.extend(sorted([p for p in standard_profiles if p not in ['ra-ocr', 'tesseract-v1']]))
 
     return render_template('journal.html', journal_name=journal_name, data=journal_data, filter_profiles=filter_profiles)
 
@@ -242,7 +256,7 @@ def year_detail(journal_name, year_str):
     source_profile = PROFILES['images']
 
     image_dir = journal_dir / Path(*source_profile['path_parts']) / year_str
-    
+
     if not image_dir.exists():
         return render_template('year.html', journal_name=journal_name, year_str=year_str, missing_files=None, source_accessible=False)
 
@@ -434,10 +448,10 @@ if __name__ == '__main__':
             SAVE_STATE_PATH = args.save_state
 
     TEMP_DIR.mkdir(exist_ok=True)
-    
+
     host = CONFIG['server']['host']
     port = CONFIG['server']['port']
     debug = CONFIG['server']['debug']
-    
+
     print(f"✅ Server started. Open http://127.0.0.1:{port} to begin scanning '{ROOT_DIR.name}'.")
     app.run(host=host, port=port, debug=debug)
