@@ -7,7 +7,7 @@ import csv
 import uuid
 from pathlib import Path
 from typing import Set, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Flask, render_template, url_for, g, redirect, session, make_response
 from markdown import markdown
@@ -85,36 +85,37 @@ def parse_year_string(year_str: str) -> bool:
     return start <= end
 
 # --- Core Scanning Logic (Rewritten) ---
+# optimized scanning logic...
 
 
 def scan_all_journals(root_dir: Path):
-    print("--- Starting Full Scan ---")
+    print("--- Starting Accelerated Scan ---")
     results = {}
 
     source_profile = PROFILES['images']
-    text_profiles = {name: conf for name,
-                     conf in PROFILES.items() if conf['path_parts'][0] == 'texts'}
-    standard_profiles = {name: conf for name, conf in PROFILES.items() if name != 'images'}
+    text_profiles = {k: v for k, v in PROFILES.items() if v['path_parts'][0] == 'texts'}
+    standard_profiles = {k: v for k, v in PROFILES.items() if k != 'images'}
 
     for journal_dir in sorted(root_dir.iterdir()):
         if not journal_dir.is_dir():
             continue
 
-        images_root_dir = journal_dir / Path(*source_profile['path_parts'])
+        images_root_dir = journal_dir.joinpath(*source_profile['path_parts'])
         if not images_root_dir.is_dir():
             continue
 
         print(f"Scanning Journal: {journal_dir.name}...")
         journal_name = journal_dir.name
         journal_data = {
-            "summary": {"total_images": 0},
+            "summary": {
+                "total_images": 0,
+                "profile_counts": {name: 0 for name in standard_profiles.keys()}
+            },
             "years": {}
         }
-        # Initialize summaries dynamically
-        journal_data["summary"]["profile_counts"] = {
-            name: 0 for name in standard_profiles.keys()}
         journal_data["summary"]["profile_counts"]["texts_group"] = {
-            "missing_coverage": 0, "edition_counts": {name: 0 for name in text_profiles.keys()}
+            "missing_coverage": 0,
+            "edition_counts": {name: 0 for name in text_profiles.keys()}
         }
 
         for year_dir in sorted(images_root_dir.iterdir()):
@@ -122,59 +123,73 @@ def scan_all_journals(root_dir: Path):
                 continue
 
             year_str = year_dir.name
-
-            image_files = [f for f in year_dir.iterdir() if f.is_file(
-            ) and f.name.lower().endswith(source_profile['extension'])]
-            if not image_files:
+            image_stems = [
+                f.stem for f in year_dir.iterdir()
+                if f.is_file() and f.name.lower().endswith(source_profile['extension'])
+            ]
+            if not image_stems:
                 continue
 
-            num_images = len(image_files)
-            year_data = {"summary": {"images": num_images}}
-            year_data["summary"]["profile_counts"] = {
-                name: 0 for name in standard_profiles.keys()}
+            num_images = len(image_stems)
+            year_data = {
+                "summary": {
+                    "images": num_images,
+                    "profile_counts": {name: 0 for name in standard_profiles.keys()},
+                }
+            }
             year_data["summary"]["profile_counts"]["texts_group"] = {
-                "missing_coverage": 0, "edition_counts": {name: 0 for name in text_profiles.keys()}
+                "missing_coverage": 0,
+                "edition_counts": {name: 0 for name in text_profiles.keys()}
             }
 
-            for image_path in image_files:
-                basename = image_path.name.split('.', 1)[0]
+            # Pre-cache directory listings for all target profiles for this year into in-memory sets
+            target_file_sets = {}
+            for name, config in standard_profiles.items():
+                target_dir = journal_dir.joinpath(*config['path_parts'], year_str)
+                if target_dir.is_dir():
+                    target_file_sets[name] = {f.name for f in target_dir.iterdir() if f.is_file()}
+                else:
+                    target_file_sets[name] = set()
 
-                # Check standard profiles
+            # Fast in-memory membership check
+            for stem in image_stems:
+                # Standard profiles
                 for name, config in standard_profiles.items():
-                    target_file = journal_dir.joinpath(
-                        *config['path_parts'], year_str, f"{basename}{config['extension']}")
-                    if not target_file.exists():
+                    expected_filename = f"{stem}{config['extension']}"
+                    if expected_filename not in target_file_sets[name]:
                         year_data["summary"]["profile_counts"][name] += 1
 
-                # Check text profiles for coverage
-                has_text_coverage = False
+                # Text coverage group
+                has_text = False
                 for name, config in text_profiles.items():
-                    target_file = journal_dir.joinpath(
-                        *config['path_parts'], year_str, f"{basename}{config['extension']}")
-                    if target_file.exists():
-                        has_text_coverage = True
+                    expected_filename = f"{stem}{config['extension']}"
+                    if expected_filename in target_file_sets[name]:
+                        has_text = True
                         year_data["summary"]["profile_counts"]["texts_group"]["edition_counts"][name] += 1
 
-                if not has_text_coverage:
+                if not has_text:
                     year_data["summary"]["profile_counts"]["texts_group"]["missing_coverage"] += 1
 
-            # Aggregate year data into journal summary
+            # Roll up to journal summary
             journal_data["summary"]["total_images"] += num_images
             for name in standard_profiles.keys():
                 journal_data["summary"]["profile_counts"][name] += year_data["summary"]["profile_counts"][name]
 
-            journal_data["summary"]["profile_counts"]["texts_group"]["missing_coverage"] += year_data["summary"]["profile_counts"]["texts_group"]["missing_coverage"]
+            journal_data["summary"]["profile_counts"]["texts_group"]["missing_coverage"] += (
+                year_data["summary"]["profile_counts"]["texts_group"]["missing_coverage"]
+            )
             for name in text_profiles.keys():
-                journal_data["summary"]["profile_counts"]["texts_group"]["edition_counts"][
-                    name] += year_data["summary"]["profile_counts"]["texts_group"]["edition_counts"][name]
+                journal_data["summary"]["profile_counts"]["texts_group"]["edition_counts"][name] += (
+                    year_data["summary"]["profile_counts"]["texts_group"]["edition_counts"][name]
+                )
 
             journal_data["years"][year_str] = year_data
 
         results[journal_name] = journal_data
 
-    print("--- Scan Complete ---")
+    from datetime import timezone
     return {
-        "metadata": {"root_dir": str(root_dir), "scan_time": datetime.utcnow().isoformat()},
+        "metadata": {"root_dir": str(root_dir), "scan_time": datetime.now(timezone.utc).isoformat()},
         "results": results
     }
 
