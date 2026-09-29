@@ -22,7 +22,8 @@ PROFILES = {
     'altoxml': {'path_parts': ('altoxml',), 'extension': '.alto.xml'},
     'metadata-v1': {'path_parts': ('metadata', 'v1'), 'extension': '.yaml'},
     'metadata-v2': {'path_parts': ('metadata', 'v2'), 'extension': '.yaml'},
-    'metadata-v3': {'path_parts': ('metadata', 'v3'), 'extension': '.yaml'}
+    'metadata-v3': {'path_parts': ('metadata', 'v3'), 'extension': '.yaml'},
+    'metadata-v4': {'path_parts': ('metadata', 'v4'), 'extension': '.yaml'}
 }
 
 # --- Flask App Initialization ---
